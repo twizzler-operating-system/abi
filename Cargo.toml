@@ -9,6 +9,7 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [dependencies]
+bitflags = "2"
 
 # We depend on some usually built-in crates here. In particular is we need to adhere to this "rustc-std-workspace-core"
 # semi-feature (https://github.com/rust-lang/wg-cargo-std-aware/issues/51). 
@@ -26,4 +27,5 @@ version = "1.0.0"
 rustc-dep-of-std = [
     "core",
     "compiler_builtins/rustc-dep-of-std",
+    "bitflags/rustc-dep-of-std",
 ]
