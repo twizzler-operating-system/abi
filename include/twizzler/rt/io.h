@@ -3,6 +3,10 @@
 #include "types.h"
 #include "fd.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 enum io_error {
   IoError_Success,
   IoError_Other,
@@ -14,13 +18,29 @@ struct io_result {
   size_t value;
 };
 
-const uint32_t IO_NONBLOCKING = 1;
+typedef uint32_t whence;
+typedef uint32_t io_flags;
 
-const uint32_t WHENCE_START = 0;
-const uint32_t WHENCE_END = 1;
-const uint32_t WHENCE_CURRENT = 2;
+const io_flags IO_NONBLOCKING = 1;
 
-extern struct io_result twz_rt_fd_read(descriptor fd, void *buf, size_t len, uint32_t flags);
-extern struct io_result twz_rt_fd_write(descriptor fd, const void *buf, size_t len, uint32_t flags);
-extern struct io_result twz_rt_fd_seek(descriptor fd, uint32_t whence, int64_t offset);
+const whence WHENCE_START = 0;
+const whence WHENCE_END = 1;
+const whence WHENCE_CURRENT = 2;
 
+extern struct io_result twz_rt_fd_read(descriptor fd, void *buf, size_t len, io_flags flags);
+extern struct io_result twz_rt_fd_write(descriptor fd, const void *buf, size_t len, io_flags flags);
+extern struct io_result twz_rt_fd_seek(descriptor fd, whence whence, int64_t offset);
+
+struct io_vec {
+  char *buf;
+  size_t len;
+};
+
+typedef int64_t optional_offset;
+const optional_offset FD_POS = -1;
+
+extern struct io_result twz_rt_fd_preadv(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
+extern struct io_result twz_rt_fd_pwritev(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
+#ifdef __cplusplus
+}
+#endif

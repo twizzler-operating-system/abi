@@ -5,12 +5,18 @@
 #include<stdbool.h>
 #include<stddef.h>
 
-extern bool futex_wait(_Atomic uint32_t *ptr, uint32_t expected, struct option_duration timeout);
-extern bool futex_wake_one(_Atomic uint32_t *ptr);
-extern void futex_wake_all(_Atomic uint32_t *ptr);
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef uint32_t futex_word;
+
+extern bool futex_wait(_Atomic futex_word *ptr, futex_word expected, struct option_duration timeout);
+extern bool futex_wake_one(_Atomic futex_word *ptr);
+extern void futex_wake_all(_Atomic futex_word *ptr);
 
 extern void yield_now(void);
-extern void set_name(const char *name);
+extern void set_name(const char *name, size_t len);
 extern void sleep(struct duration dur);
 
 struct tls_index {
@@ -19,6 +25,8 @@ struct tls_index {
 };
 
 extern void *tls_get_addr(struct tls_index index);
+
+typedef uint32_t thread_id;
 
 struct spawn_args {
   size_t stack_size;
@@ -36,7 +44,7 @@ enum spawn_error {
 };
 
 struct spawn_result {
-  uint32_t id;
+  thread_id id;
   enum spawn_error err;
 };
 
@@ -48,4 +56,7 @@ enum join_result {
   Join_Timeout,
 };
 
-extern enum join_result join(uint32_t id, struct option_duration timeout);
+extern enum join_result join(thread_id id, struct option_duration timeout);
+#ifdef __cplusplus
+}
+#endif

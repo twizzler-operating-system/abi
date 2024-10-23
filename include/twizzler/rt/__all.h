@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "types.h"
@@ -12,3 +11,4 @@
 #include "debug.h"
 #include "info.h"
 #include "random.h"
+#include "version.h"

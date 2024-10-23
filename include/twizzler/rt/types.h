@@ -2,6 +2,10 @@
 #include<stddef.h>
 #include<stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct rt_slice {
   size_t len;
   void *ptr;
@@ -23,17 +27,6 @@ struct option_duration {
   struct duration dur;
   int32_t is_some;
 };
-
-struct basic_aux {
-    size_t argc;
-    char **args;
-    char **env;
-};
-
-struct basic_return {
-  int32_t code;
-};
-
-struct runtime_info {
-  int32_t flags;
-};
+#ifdef __cplusplus
+}
+#endif
