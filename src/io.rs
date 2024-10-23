@@ -16,9 +16,9 @@ bitflags::bitflags! {
 }
 
 pub enum SeekFrom {
-    Start(usize),
-    End(isize),
-    Current(isize),
+    Start(u64),
+    End(i64),
+    Current(i64),
 }
 
 pub fn twz_rt_fd_read(fd: RawFd, buf: &mut [u8], flags: IoFlags) -> Result<usize, IoError> {

@@ -18,15 +18,15 @@ struct dl_phdr_info {
 	void *dlpi_tls_data;
 };
 
-struct dso {
-  uint32_t id;
+struct loaded_image {
   struct object_handle image_handle;
   const void *image_start;
   size_t image_len;
   struct dl_phdr_info dl_info;
+  uint32_t id;
 };
 
-extern bool twz_rt_get_dso(uint32_t id, struct dso *dso);
+extern bool twz_rt_get_loaded_image(uint32_t id, struct loaded_image *li);
 extern int twz_rt_iter_phdr(int (*cb)(const struct dl_phdr_info *));
 
 const uint32_t TWZ_RT_EXEID = 0;

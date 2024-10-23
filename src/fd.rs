@@ -9,6 +9,10 @@ pub fn twz_rt_fd_open(_name: &str) -> Result<RawFd, OpenError> {
     todo!()
 }
 
+pub fn twz_rt_fd_dup(_fd: RawFd) -> Result<RawFd, OpenError> {
+    todo!()
+}
+
 pub fn twz_rt_fd_close(_fd: RawFd) {
     todo!()
 }

@@ -1,8 +1,8 @@
 
 pub type DlPhdrInfo = crate::bindings::dl_phdr_info;
-pub type Library = crate::bindings::dso;
+pub type LoadedImage = crate::bindings::loaded_image;
 
-pub fn twz_rt_get_library(_id: u32) -> Option<Library> {
+pub fn twz_rt_get_loaded_image(_id: u32) -> Option<LoadedImage> {
     todo!()
 }
 
