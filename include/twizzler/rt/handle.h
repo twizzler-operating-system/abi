@@ -14,8 +14,11 @@ struct object_handle {
   void *start;
   void *meta;
   map_flags map_flags;
-  uint32_t _resv;
+  uint32_t valid_len;
 };
+
+const size_t LEN_MUL = 0x1000;
+
 #ifdef __cplusplus
 }
 #endif

@@ -11,20 +11,21 @@ extern "C" {
 
 typedef uint32_t futex_word;
 
-extern bool futex_wait(_Atomic futex_word *ptr, futex_word expected, struct option_duration timeout);
-extern bool futex_wake_one(_Atomic futex_word *ptr);
-extern void futex_wake_all(_Atomic futex_word *ptr);
+extern bool twz_rt_futex_wait(_Atomic futex_word *ptr, futex_word expected, struct option_duration timeout);
+extern bool twz_rt_futex_wake(_Atomic futex_word *ptr, int64_t max);
 
-extern void yield_now(void);
-extern void set_name(const char *name, size_t len);
-extern void sleep(struct duration dur);
+const int64_t FUTEX_WAKE_ALL = -1;
+
+extern void twz_rt_yield_now(void);
+extern void twz_rt_set_name(const char *name);
+extern void twz_rt_sleep(struct duration dur);
 
 struct tls_index {
   size_t mod_id;
   size_t offset;
 };
 
-extern void *tls_get_addr(struct tls_index index);
+extern void *twz_rt_tls_get_addr(struct tls_index *index);
 
 typedef uint32_t thread_id;
 
@@ -48,7 +49,7 @@ struct spawn_result {
   enum spawn_error err;
 };
 
-extern struct spawn_result spawn(struct spawn_args args);
+extern struct spawn_result twz_rt_spawn_thread(struct spawn_args args);
 
 enum join_result {
   Join_Success,
@@ -56,7 +57,7 @@ enum join_result {
   Join_Timeout,
 };
 
-extern enum join_result join(thread_id id, struct option_duration timeout);
+extern enum join_result twz_rt_join_thread(thread_id id, struct option_duration timeout);
 #ifdef __cplusplus
 }
 #endif

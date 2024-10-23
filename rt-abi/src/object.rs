@@ -1,6 +1,6 @@
 #![allow(unused_variables)]
 
-pub type ObjID = crate::bindings::rt_objid;
+pub use twizzler_types::ObjID;
 
 pub type ObjectHandle = crate::bindings::object_handle;
 

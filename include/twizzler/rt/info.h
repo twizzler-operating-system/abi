@@ -9,6 +9,7 @@ extern "C" {
 struct system_info {
   enum monotonicity clock_monotonicity;
   size_t available_parallelism;
+  size_t page_size;
 };
 
 extern struct system_info twz_rt_get_sysinfo(void);
