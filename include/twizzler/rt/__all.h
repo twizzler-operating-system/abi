@@ -8,3 +8,6 @@
 #include "fd.h"
 #include "io.h"
 #include "object.h"
+#include "time.h"
+#include "debug.h"
+#include "info.h"

@@ -5,8 +5,6 @@
 #include<stdbool.h>
 #include<stddef.h>
 
-extern uint64_t available_parallelism(void);
-
 extern bool futex_wait(_Atomic uint32_t *ptr, uint32_t expected, struct option_duration timeout);
 extern bool futex_wake_one(_Atomic uint32_t *ptr);
 extern void futex_wake_all(_Atomic uint32_t *ptr);
