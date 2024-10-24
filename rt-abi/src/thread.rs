@@ -38,7 +38,7 @@ pub fn twz_rt_sleep(dur: Duration) {
     todo!()
 }
 
-pub fn twz_rt_set_name(name: &core::ffi::CStr) {
+pub fn twz_rt_set_thread_name(name: &core::ffi::CStr) {
     todo!()
 }
 
@@ -50,6 +50,6 @@ pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId, SpawnError
     todo!()
 }
 
-pub fn twz_rt_join_thread(id: ThreadId) -> Result<(), JoinError> {
+pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<(), JoinError> {
     todo!()
 }
