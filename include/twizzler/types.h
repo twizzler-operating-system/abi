@@ -18,11 +18,6 @@ struct duration {
   uint32_t nanos;
 };
 
-struct option_i32 {
-  int32_t is_some;
-  int32_t value;
-};
-
 struct option_duration {
   struct duration dur;
   int32_t is_some;

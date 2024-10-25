@@ -1,13 +1,16 @@
 #pragma once
 
 #include <stdint.h>
+#include <stddef.h>
 #include "handle.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+/// This is a test.
 struct dl_phdr_info {
+	/// Foo.
 	uintptr_t dlpi_addr;
 	const char *dlpi_name;
 	const void *dlpi_phdr;
@@ -29,7 +32,7 @@ struct loaded_image {
 };
 
 extern bool twz_rt_get_loaded_image(loaded_image_id id, struct loaded_image *li);
-extern int twz_rt_iter_phdr(int (*cb)(const struct dl_phdr_info *));
+extern int twz_rt_iter_phdr(int (*cb)(const struct dl_phdr_info *, size_t size, void *data), void *data);
 
 const loaded_image_id TWZ_RT_EXEID = 0;
 
