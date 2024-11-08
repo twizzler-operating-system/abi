@@ -68,19 +68,6 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct option_i32 {
-    pub is_some: i32,
-    pub value: i32,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of option_i32"][::core::mem::size_of::<option_i32>() - 8usize];
-    ["Alignment of option_i32"][::core::mem::align_of::<option_i32>() - 4usize];
-    ["Offset of field: option_i32::is_some"][::core::mem::offset_of!(option_i32, is_some) - 0usize];
-    ["Offset of field: option_i32::value"][::core::mem::offset_of!(option_i32, value) - 4usize];
-};
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 pub struct option_duration {
     pub dur: duration,
     pub is_some: i32,
@@ -94,6 +81,29 @@ const _: () = {
     ["Offset of field: option_duration::is_some"]
         [::core::mem::offset_of!(option_duration, is_some) - 16usize];
 };
+pub type alloc_flags = u32;
+pub const ZERO_MEMORY: alloc_flags = 1;
+extern "C-unwind" {
+    pub fn twz_rt_malloc(sz: usize, align: usize, flags: alloc_flags) -> *mut ::core::ffi::c_void;
+}
+extern "C-unwind" {
+    pub fn twz_rt_dealloc(
+        ptr: *mut ::core::ffi::c_void,
+        sz: usize,
+        align: usize,
+        flags: alloc_flags,
+    );
+}
+extern "C-unwind" {
+    pub fn twz_rt_realloc(
+        ptr: *mut ::core::ffi::c_void,
+        sz: usize,
+        align: usize,
+        new_size: usize,
+        flags: alloc_flags,
+    ) -> *mut ::core::ffi::c_void;
+}
+pub type exit_code = i32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct basic_aux {
@@ -112,7 +122,7 @@ const _: () = {
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct basic_return {
-    pub code: i32,
+    pub code: exit_code,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -122,23 +132,108 @@ const _: () = {
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct runtime_info {
-    pub flags: i32,
+pub struct comp_init_info {
+    pub legacy_init: ::core::option::Option<unsafe extern "C-unwind" fn()>,
+    pub init_array: *mut ::core::option::Option<unsafe extern "C-unwind" fn()>,
+    pub init_array_len: usize,
+    pub comp_config_info: *mut ::core::ffi::c_void,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of runtime_info"][::core::mem::size_of::<runtime_info>() - 4usize];
-    ["Alignment of runtime_info"][::core::mem::align_of::<runtime_info>() - 4usize];
+    ["Size of comp_init_info"][::core::mem::size_of::<comp_init_info>() - 32usize];
+    ["Alignment of comp_init_info"][::core::mem::align_of::<comp_init_info>() - 8usize];
+    ["Offset of field: comp_init_info::legacy_init"]
+        [::core::mem::offset_of!(comp_init_info, legacy_init) - 0usize];
+    ["Offset of field: comp_init_info::init_array"]
+        [::core::mem::offset_of!(comp_init_info, init_array) - 8usize];
+    ["Offset of field: comp_init_info::init_array_len"]
+        [::core::mem::offset_of!(comp_init_info, init_array_len) - 16usize];
+    ["Offset of field: comp_init_info::comp_config_info"]
+        [::core::mem::offset_of!(comp_init_info, comp_config_info) - 24usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct minimal_init_info {
+    pub args: *mut *mut ::core::ffi::c_char,
+    pub argc: usize,
+    pub envp: *mut *mut ::core::ffi::c_char,
+    pub phdrs: *mut ::core::ffi::c_void,
+    pub nr_phdrs: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of minimal_init_info"][::core::mem::size_of::<minimal_init_info>() - 40usize];
+    ["Alignment of minimal_init_info"][::core::mem::align_of::<minimal_init_info>() - 8usize];
+    ["Offset of field: minimal_init_info::args"]
+        [::core::mem::offset_of!(minimal_init_info, args) - 0usize];
+    ["Offset of field: minimal_init_info::argc"]
+        [::core::mem::offset_of!(minimal_init_info, argc) - 8usize];
+    ["Offset of field: minimal_init_info::envp"]
+        [::core::mem::offset_of!(minimal_init_info, envp) - 16usize];
+    ["Offset of field: minimal_init_info::phdrs"]
+        [::core::mem::offset_of!(minimal_init_info, phdrs) - 24usize];
+    ["Offset of field: minimal_init_info::nr_phdrs"]
+        [::core::mem::offset_of!(minimal_init_info, nr_phdrs) - 32usize];
+};
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union init_info_ptrs {
+    pub comp: *mut comp_init_info,
+    pub min: *mut minimal_init_info,
+    pub monitor: *mut ::core::ffi::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of init_info_ptrs"][::core::mem::size_of::<init_info_ptrs>() - 8usize];
+    ["Alignment of init_info_ptrs"][::core::mem::align_of::<init_info_ptrs>() - 8usize];
+    ["Offset of field: init_info_ptrs::comp"]
+        [::core::mem::offset_of!(init_info_ptrs, comp) - 0usize];
+    ["Offset of field: init_info_ptrs::min"][::core::mem::offset_of!(init_info_ptrs, min) - 0usize];
+    ["Offset of field: init_info_ptrs::monitor"]
+        [::core::mem::offset_of!(init_info_ptrs, monitor) - 0usize];
+};
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct runtime_info {
+    pub flags: i32,
+    pub kind: i32,
+    pub init_info: init_info_ptrs,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of runtime_info"][::core::mem::size_of::<runtime_info>() - 16usize];
+    ["Alignment of runtime_info"][::core::mem::align_of::<runtime_info>() - 8usize];
     ["Offset of field: runtime_info::flags"][::core::mem::offset_of!(runtime_info, flags) - 0usize];
+    ["Offset of field: runtime_info::kind"][::core::mem::offset_of!(runtime_info, kind) - 4usize];
+    ["Offset of field: runtime_info::init_info"]
+        [::core::mem::offset_of!(runtime_info, init_info) - 8usize];
+};
+pub const RUNTIME_INIT_MIN: i32 = 0;
+pub const RUNTIME_INIT_MONITOR: i32 = 1;
+pub const RUNTIME_INIT_COMP: i32 = 2;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct option_exit_code {
+    pub is_some: i32,
+    pub value: exit_code,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of option_exit_code"][::core::mem::size_of::<option_exit_code>() - 8usize];
+    ["Alignment of option_exit_code"][::core::mem::align_of::<option_exit_code>() - 4usize];
+    ["Offset of field: option_exit_code::is_some"]
+        [::core::mem::offset_of!(option_exit_code, is_some) - 0usize];
+    ["Offset of field: option_exit_code::value"]
+        [::core::mem::offset_of!(option_exit_code, value) - 4usize];
 };
 extern "C-unwind" {
-    pub fn twz_rt_exit(code: i32);
+    pub fn twz_rt_exit(code: exit_code);
 }
 extern "C-unwind" {
     pub fn twz_rt_abort();
 }
 extern "C-unwind" {
-    pub fn twz_rt_pre_main_hook() -> option_i32;
+    pub fn twz_rt_pre_main_hook() -> option_exit_code;
 }
 extern "C-unwind" {
     pub fn twz_rt_post_main_hook();
@@ -151,26 +246,23 @@ extern "C-unwind" {
         >,
     );
 }
+pub type futex_word = u32;
 extern "C-unwind" {
-    pub fn available_parallelism() -> u64;
+    pub fn twz_rt_futex_wait(ptr: *mut u32, expected: futex_word, timeout: option_duration)
+        -> bool;
 }
 extern "C-unwind" {
-    pub fn futex_wait(ptr: *mut u32, expected: u32, timeout: option_duration) -> bool;
+    pub fn twz_rt_futex_wake(ptr: *mut u32, max: i64) -> bool;
+}
+pub const FUTEX_WAKE_ALL: i64 = -1;
+extern "C-unwind" {
+    pub fn twz_rt_yield_now();
 }
 extern "C-unwind" {
-    pub fn futex_wake_one(ptr: *mut u32) -> bool;
+    pub fn twz_rt_set_name(name: *const ::core::ffi::c_char);
 }
 extern "C-unwind" {
-    pub fn futex_wake_all(ptr: *mut u32);
-}
-extern "C-unwind" {
-    pub fn yield_now();
-}
-extern "C-unwind" {
-    pub fn set_name(name: *const ::core::ffi::c_char);
-}
-extern "C-unwind" {
-    pub fn sleep(dur: duration);
+    pub fn twz_rt_sleep(dur: duration);
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -186,8 +278,9 @@ const _: () = {
     ["Offset of field: tls_index::offset"][::core::mem::offset_of!(tls_index, offset) - 8usize];
 };
 extern "C-unwind" {
-    pub fn tls_get_addr(index: tls_index) -> *mut ::core::ffi::c_void;
+    pub fn twz_rt_tls_get_addr(index: *mut tls_index) -> *mut ::core::ffi::c_void;
 }
+pub type thread_id = u32;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spawn_args {
@@ -214,7 +307,7 @@ pub type spawn_error = ::core::ffi::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct spawn_result {
-    pub id: u32,
+    pub id: thread_id,
     pub err: spawn_error,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -225,13 +318,313 @@ const _: () = {
     ["Offset of field: spawn_result::err"][::core::mem::offset_of!(spawn_result, err) - 4usize];
 };
 extern "C-unwind" {
-    pub fn spawn(args: spawn_args) -> spawn_result;
+    pub fn twz_rt_spawn_thread(args: spawn_args) -> spawn_result;
 }
 pub const join_result_Join_Success: join_result = 0;
 pub const join_result_Join_ThreadNotFound: join_result = 1;
 pub const join_result_Join_Timeout: join_result = 2;
 pub type join_result = ::core::ffi::c_uint;
 extern "C-unwind" {
-    pub fn join(id: u32, timeout: option_duration) -> join_result;
+    pub fn twz_rt_join_thread(id: thread_id, timeout: option_duration) -> join_result;
 }
+pub type map_flags = u32;
+#[repr(C)]
+#[repr(align(16))]
+#[derive(Debug, Copy, Clone)]
+pub struct object_handle {
+    pub id: rt_objid,
+    pub runtime_info: *mut ::core::ffi::c_void,
+    pub start: *mut ::core::ffi::c_void,
+    pub meta: *mut ::core::ffi::c_void,
+    pub map_flags: map_flags,
+    pub valid_len: u32,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of object_handle"][::core::mem::size_of::<object_handle>() - 48usize];
+    ["Alignment of object_handle"][::core::mem::align_of::<object_handle>() - 16usize];
+    ["Offset of field: object_handle::id"][::core::mem::offset_of!(object_handle, id) - 0usize];
+    ["Offset of field: object_handle::runtime_info"]
+        [::core::mem::offset_of!(object_handle, runtime_info) - 16usize];
+    ["Offset of field: object_handle::start"]
+        [::core::mem::offset_of!(object_handle, start) - 24usize];
+    ["Offset of field: object_handle::meta"]
+        [::core::mem::offset_of!(object_handle, meta) - 32usize];
+    ["Offset of field: object_handle::map_flags"]
+        [::core::mem::offset_of!(object_handle, map_flags) - 40usize];
+    ["Offset of field: object_handle::valid_len"]
+        [::core::mem::offset_of!(object_handle, valid_len) - 44usize];
+};
+pub const LEN_MUL: usize = 4096;
+pub type descriptor = i32;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct open_info {
+    pub name: *const ::core::ffi::c_char,
+    pub len: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of open_info"][::core::mem::size_of::<open_info>() - 16usize];
+    ["Alignment of open_info"][::core::mem::align_of::<open_info>() - 8usize];
+    ["Offset of field: open_info::name"][::core::mem::offset_of!(open_info, name) - 0usize];
+    ["Offset of field: open_info::len"][::core::mem::offset_of!(open_info, len) - 8usize];
+};
+pub const open_error_OpenError_Sucess: open_error = 0;
+pub const open_error_OpenError_Other: open_error = 1;
+pub const open_error_OpenError_LookupFail: open_error = 2;
+pub const open_error_OpenError_PermissionDenied: open_error = 3;
+pub const open_error_OpenError_InvalidArgument: open_error = 4;
+pub type open_error = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct open_result {
+    pub fd: descriptor,
+    pub error: open_error,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of open_result"][::core::mem::size_of::<open_result>() - 8usize];
+    ["Alignment of open_result"][::core::mem::align_of::<open_result>() - 4usize];
+    ["Offset of field: open_result::fd"][::core::mem::offset_of!(open_result, fd) - 0usize];
+    ["Offset of field: open_result::error"][::core::mem::offset_of!(open_result, error) - 4usize];
+};
+extern "C-unwind" {
+    pub fn twz_rt_fd_open(info: open_info) -> open_result;
+}
+extern "C-unwind" {
+    pub fn twz_rt_fd_close(fd: descriptor);
+}
+pub const io_error_IoError_Success: io_error = 0;
+pub const io_error_IoError_Other: io_error = 1;
+pub const io_error_IoError_WouldBlock: io_error = 2;
+pub type io_error = ::core::ffi::c_uint;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct io_result {
+    pub error: io_error,
+    pub value: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of io_result"][::core::mem::size_of::<io_result>() - 16usize];
+    ["Alignment of io_result"][::core::mem::align_of::<io_result>() - 8usize];
+    ["Offset of field: io_result::error"][::core::mem::offset_of!(io_result, error) - 0usize];
+    ["Offset of field: io_result::value"][::core::mem::offset_of!(io_result, value) - 8usize];
+};
+pub type whence = u32;
+pub type io_flags = u32;
+pub const IO_NONBLOCKING: io_flags = 1;
+pub const WHENCE_START: whence = 0;
+pub const WHENCE_END: whence = 1;
+pub const WHENCE_CURRENT: whence = 2;
+extern "C-unwind" {
+    pub fn twz_rt_fd_read(
+        fd: descriptor,
+        buf: *mut ::core::ffi::c_void,
+        len: usize,
+        flags: io_flags,
+    ) -> io_result;
+}
+extern "C-unwind" {
+    pub fn twz_rt_fd_write(
+        fd: descriptor,
+        buf: *const ::core::ffi::c_void,
+        len: usize,
+        flags: io_flags,
+    ) -> io_result;
+}
+extern "C-unwind" {
+    pub fn twz_rt_fd_seek(fd: descriptor, whence: whence, offset: i64) -> io_result;
+}
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct io_vec {
+    pub buf: *mut ::core::ffi::c_char,
+    pub len: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of io_vec"][::core::mem::size_of::<io_vec>() - 16usize];
+    ["Alignment of io_vec"][::core::mem::align_of::<io_vec>() - 8usize];
+    ["Offset of field: io_vec::buf"][::core::mem::offset_of!(io_vec, buf) - 0usize];
+    ["Offset of field: io_vec::len"][::core::mem::offset_of!(io_vec, len) - 8usize];
+};
+pub type optional_offset = i64;
+pub const FD_POS: optional_offset = -1;
+extern "C-unwind" {
+    pub fn twz_rt_fd_preadv(
+        fd: descriptor,
+        offset: optional_offset,
+        iovs: *const io_vec,
+        nr_iovs: usize,
+        flags: io_flags,
+    ) -> io_result;
+}
+extern "C-unwind" {
+    pub fn twz_rt_fd_pwritev(
+        fd: descriptor,
+        offset: optional_offset,
+        iovs: *const io_vec,
+        nr_iovs: usize,
+        flags: io_flags,
+    ) -> io_result;
+}
+pub const map_error_MapError_Success: map_error = 0;
+pub const map_error_MapError_Other: map_error = 1;
+pub const map_error_MapError_OutOfResources: map_error = 2;
+pub const map_error_MapError_NoSuchObject: map_error = 3;
+pub const map_error_MapError_PermissionDenied: map_error = 4;
+pub const map_error_MapError_InvalidArgument: map_error = 5;
+pub type map_error = ::core::ffi::c_uint;
+#[repr(C)]
+#[repr(align(16))]
+#[derive(Debug, Copy, Clone)]
+pub struct map_result {
+    pub handle: object_handle,
+    pub error: map_error,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of map_result"][::core::mem::size_of::<map_result>() - 64usize];
+    ["Alignment of map_result"][::core::mem::align_of::<map_result>() - 16usize];
+    ["Offset of field: map_result::handle"][::core::mem::offset_of!(map_result, handle) - 0usize];
+    ["Offset of field: map_result::error"][::core::mem::offset_of!(map_result, error) - 48usize];
+};
+pub const MAP_FLAG_R: map_flags = 1;
+pub const MAP_FLAG_W: map_flags = 2;
+pub const MAP_FLAG_X: map_flags = 4;
+extern "C-unwind" {
+    pub fn twz_rt_map_object(id: rt_objid, flags: map_flags) -> map_result;
+}
+extern "C-unwind" {
+    pub fn twz_rt_release_handle(handle: *mut object_handle);
+}
+extern "C-unwind" {
+    pub fn __twz_rt_map_two_objects(
+        id_1: rt_objid,
+        flags_1: map_flags,
+        id_2: rt_objid,
+        flags_2: map_flags,
+        res_1: *mut map_result,
+        res_2: *mut map_result,
+    );
+}
+pub const monotonicity_NonMonotonic: monotonicity = 0;
+pub const monotonicity_WeakMonotonic: monotonicity = 1;
+pub const monotonicity_StrongMonotonic: monotonicity = 2;
+pub type monotonicity = ::core::ffi::c_uint;
+extern "C-unwind" {
+    pub fn twz_rt_get_monotonic_time() -> duration;
+}
+extern "C-unwind" {
+    pub fn twz_rt_get_system_time() -> duration;
+}
+#[doc = " This is a test."]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct dl_phdr_info {
+    #[doc = " Foo."]
+    pub dlpi_addr: usize,
+    pub dlpi_name: *const ::core::ffi::c_char,
+    pub dlpi_phdr: *const ::core::ffi::c_void,
+    pub dlpi_phnum: u32,
+    pub dlpi_adds: ::core::ffi::c_ulonglong,
+    pub dlpi_subs: ::core::ffi::c_ulonglong,
+    pub dlpi_tls_modid: usize,
+    pub dlpi_tls_data: *mut ::core::ffi::c_void,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of dl_phdr_info"][::core::mem::size_of::<dl_phdr_info>() - 64usize];
+    ["Alignment of dl_phdr_info"][::core::mem::align_of::<dl_phdr_info>() - 8usize];
+    ["Offset of field: dl_phdr_info::dlpi_addr"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_addr) - 0usize];
+    ["Offset of field: dl_phdr_info::dlpi_name"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_name) - 8usize];
+    ["Offset of field: dl_phdr_info::dlpi_phdr"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_phdr) - 16usize];
+    ["Offset of field: dl_phdr_info::dlpi_phnum"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_phnum) - 24usize];
+    ["Offset of field: dl_phdr_info::dlpi_adds"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_adds) - 32usize];
+    ["Offset of field: dl_phdr_info::dlpi_subs"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_subs) - 40usize];
+    ["Offset of field: dl_phdr_info::dlpi_tls_modid"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_tls_modid) - 48usize];
+    ["Offset of field: dl_phdr_info::dlpi_tls_data"]
+        [::core::mem::offset_of!(dl_phdr_info, dlpi_tls_data) - 56usize];
+};
+pub type loaded_image_id = u32;
+#[repr(C)]
+#[repr(align(16))]
+#[derive(Debug, Copy, Clone)]
+pub struct loaded_image {
+    pub image_handle: object_handle,
+    pub image_start: *const ::core::ffi::c_void,
+    pub image_len: usize,
+    pub dl_info: dl_phdr_info,
+    pub id: loaded_image_id,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of loaded_image"][::core::mem::size_of::<loaded_image>() - 144usize];
+    ["Alignment of loaded_image"][::core::mem::align_of::<loaded_image>() - 16usize];
+    ["Offset of field: loaded_image::image_handle"]
+        [::core::mem::offset_of!(loaded_image, image_handle) - 0usize];
+    ["Offset of field: loaded_image::image_start"]
+        [::core::mem::offset_of!(loaded_image, image_start) - 48usize];
+    ["Offset of field: loaded_image::image_len"]
+        [::core::mem::offset_of!(loaded_image, image_len) - 56usize];
+    ["Offset of field: loaded_image::dl_info"]
+        [::core::mem::offset_of!(loaded_image, dl_info) - 64usize];
+    ["Offset of field: loaded_image::id"][::core::mem::offset_of!(loaded_image, id) - 128usize];
+};
+extern "C-unwind" {
+    pub fn twz_rt_get_loaded_image(id: loaded_image_id, li: *mut loaded_image) -> bool;
+}
+extern "C-unwind" {
+    pub fn twz_rt_iter_phdr(
+        cb: ::core::option::Option<
+            unsafe extern "C-unwind" fn(
+                arg1: *const dl_phdr_info,
+                size: usize,
+                data: *mut ::core::ffi::c_void,
+            ) -> ::core::ffi::c_int,
+        >,
+        data: *mut ::core::ffi::c_void,
+    ) -> ::core::ffi::c_int;
+}
+pub const TWZ_RT_EXEID: loaded_image_id = 0;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct system_info {
+    pub clock_monotonicity: monotonicity,
+    pub available_parallelism: usize,
+    pub page_size: usize,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of system_info"][::core::mem::size_of::<system_info>() - 24usize];
+    ["Alignment of system_info"][::core::mem::align_of::<system_info>() - 8usize];
+    ["Offset of field: system_info::clock_monotonicity"]
+        [::core::mem::offset_of!(system_info, clock_monotonicity) - 0usize];
+    ["Offset of field: system_info::available_parallelism"]
+        [::core::mem::offset_of!(system_info, available_parallelism) - 8usize];
+    ["Offset of field: system_info::page_size"]
+        [::core::mem::offset_of!(system_info, page_size) - 16usize];
+};
+extern "C-unwind" {
+    pub fn twz_rt_get_sysinfo() -> system_info;
+}
+pub type get_random_flags = u32;
+pub const GET_RANDOM_NON_BLOCKING: get_random_flags = 1;
+extern "C-unwind" {
+    pub fn twz_rt_get_random(
+        buf: *mut ::core::ffi::c_char,
+        len: usize,
+        flags: get_random_flags,
+    ) -> usize;
+}
+pub const version: &[u8; 7] = b"0.99.0\0";
 pub type __uint128_t = u128;

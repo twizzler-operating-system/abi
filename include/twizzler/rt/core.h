@@ -18,9 +18,36 @@ struct basic_return {
   exit_code code;
 };
 
+struct comp_init_info {
+  void (*legacy_init)();
+  void (**init_array)();
+  size_t init_array_len;
+  void *comp_config_info;
+};
+
+struct minimal_init_info {
+  char **args;
+  size_t argc;
+  char **envp;
+  void *phdrs;
+  size_t nr_phdrs;
+};
+
+union init_info_ptrs {
+    struct comp_init_info *comp;
+    struct minimal_init_info *min;
+    void *monitor;
+};
+
 struct runtime_info {
   int32_t flags;
+  int32_t kind;
+  union init_info_ptrs init_info;
 };
+
+const int32_t RUNTIME_INIT_MIN = 0;
+const int32_t RUNTIME_INIT_MONITOR = 1;
+const int32_t RUNTIME_INIT_COMP = 2;
 
 struct option_exit_code {
   int32_t is_some;

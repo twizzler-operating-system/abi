@@ -31,3 +31,5 @@ rustc-dep-of-std = [
     "bitflags/rustc-dep-of-std",
     "twizzler-types/rustc-dep-of-std",
 ]
+
+kernel = []

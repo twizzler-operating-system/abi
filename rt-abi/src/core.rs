@@ -2,6 +2,7 @@ pub type ExitCode = crate::bindings::exit_code;
 
 /// Exit with the provided error code. If the main thread for a program
 /// exits, the remaining threads will exit as well.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_exit(code: ExitCode) -> ! {
     unsafe {
         crate::bindings::twz_rt_exit(code);
@@ -10,6 +11,7 @@ pub fn twz_rt_exit(code: ExitCode) -> ! {
 }
 
 /// Abort execution due to unrecoverable language error.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_abort() -> ! {
     unsafe {
         crate::bindings::twz_rt_abort();
@@ -20,6 +22,7 @@ pub fn twz_rt_abort() -> ! {
 /// Call this before calling main, after initializing the runtime.
 /// If this function returns None, then call main. Otherwise, act
 /// as if main returned the provided [ExitCode].
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_pre_main_hook() -> Option<ExitCode> {
     unsafe {
         crate::bindings::twz_rt_pre_main_hook().into()
@@ -38,6 +41,7 @@ impl From<crate::bindings::option_exit_code> for Option<ExitCode> {
 }
 
 /// Call this after return from main, before running destructors.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_post_main_hook() {
     unsafe {
         crate::bindings::twz_rt_post_main_hook();
@@ -47,8 +51,13 @@ pub fn twz_rt_post_main_hook() {
 pub use crate::bindings::basic_aux as BasicAux;
 pub use crate::bindings::basic_return as BasicReturn;
 pub use crate::bindings::runtime_info as RuntimeInfo;
+pub use crate::bindings::comp_init_info as CompartmentInitInfo;
+pub use crate::bindings::minimal_init_info as MinimalInitInfo;
+pub use crate::bindings::init_info_ptrs as InitInfoPtrs;
+pub use crate::bindings::{RUNTIME_INIT_MIN, RUNTIME_INIT_MONITOR, RUNTIME_INIT_COMP};
 
 /// The entry point for the runtime. Not for public use.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_runtime_entry(info: *const RuntimeInfo, std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn) -> ! {
     unsafe {
         crate::bindings::twz_rt_runtime_entry(info, Some(std_entry));

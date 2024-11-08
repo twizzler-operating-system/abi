@@ -5,6 +5,7 @@ use core::mem::MaybeUninit;
 use core::fmt::{UpperHex, LowerHex};
 
 /// An object ID.
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 #[repr(transparent)]
 pub struct ObjID(twizzler_types::ObjID);
 
@@ -13,23 +14,41 @@ impl ObjID {
     pub const NR_PARTS: usize = 2;
 
     /// Build a new object ID from raw.
-    pub fn new(raw: twizzler_types::ObjID) -> Self {
+    pub const fn new(raw: twizzler_types::ObjID) -> Self {
         Self(raw)
     }
 
     /// Get the raw object ID type.
-    pub fn raw(&self) -> twizzler_types::ObjID {
+    pub const fn raw(&self) -> twizzler_types::ObjID {
         self.0
     }
 
     /// Build an object ID from parts, useful for syscalls.
-    pub fn from_parts(parts: [u64; Self::NR_PARTS]) -> Self {
+    pub const fn from_parts(parts: [u64; Self::NR_PARTS]) -> Self {
         Self::new(((parts[0] as u128) << 64) | (parts[1] as u128))
     }
 
     /// Split the object ID into parts, useful for packing into registers for syscalls.
-    pub fn parts(&self) -> [u64; Self::NR_PARTS] {
+    pub const fn parts(&self) -> [u64; Self::NR_PARTS] {
         [(self.0 >> 64) as u64, (self.0 & 0xffffffffffffffff) as u64]
+    }
+
+    // TODO: remove this
+    #[deprecated]
+    pub const fn split(&self) -> (u64, u64) {
+        let parts = self.parts();
+        (parts[0], parts[1])
+    }
+
+    // TODO: remove this
+    #[deprecated]
+    pub const fn new_from_parts(hi: u64, lo: u64) -> Self {
+        Self::from_parts([hi, lo])
+    }
+
+    #[deprecated]
+    pub const fn as_u128(&self) -> u128 {
+        self.0
     }
 }
 
@@ -118,12 +137,14 @@ impl TryFrom<crate::bindings::map_error> for MapError {
     }
 }
 
+#[cfg(not(feature = "kernel"))]
 impl ObjectHandle {
     fn refs(&self) -> *const AtomicU64 {
         self.0.runtime_info.cast()
     }
 }
 
+#[cfg(not(feature = "kernel"))]
 impl Clone for ObjectHandle {
     fn clone(&self) -> Self {
         unsafe {       
@@ -142,6 +163,7 @@ impl Clone for ObjectHandle {
     }
 }
 
+#[cfg(not(feature = "kernel"))]
 impl Drop for ObjectHandle {
     fn drop(&mut self) {
         unsafe {
@@ -161,6 +183,7 @@ impl Drop for ObjectHandle {
 }
 
 /// Map an object given by ID `id` with the given flags.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, MapError> {
     unsafe {
         let res = crate::bindings::twz_rt_map_object(id.raw(), flags.bits());
@@ -173,11 +196,13 @@ pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, Map
 }
 
 /// Release a handle. Should be only called by the ObjectHandle drop call.
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_release_handle(handle: &mut ObjectHandle) {
     unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0) }
 }
 
 #[deprecated]
+#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_map_two_objects(id1: ObjID, flags1: MapFlags, id2: ObjID, flags2: MapFlags) -> Result<(ObjectHandle, ObjectHandle), MapError> {
     unsafe {
         let mut res1 = MaybeUninit::uninit();
