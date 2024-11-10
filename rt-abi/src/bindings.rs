@@ -397,7 +397,9 @@ extern "C-unwind" {
 }
 pub const io_error_IoError_Success: io_error = 0;
 pub const io_error_IoError_Other: io_error = 1;
-pub const io_error_IoError_WouldBlock: io_error = 2;
+pub const io_error_IoError_SeekError: io_error = 2;
+pub const io_error_IoError_InvalidDesc: io_error = 3;
+pub const io_error_IoError_WouldBlock: io_error = 4;
 pub type io_error = ::core::ffi::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -520,40 +522,33 @@ extern "C-unwind" {
 extern "C-unwind" {
     pub fn twz_rt_get_system_time() -> duration;
 }
-#[doc = " This is a test."]
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct dl_phdr_info {
-    #[doc = " Foo."]
-    pub dlpi_addr: usize,
-    pub dlpi_name: *const ::core::ffi::c_char,
-    pub dlpi_phdr: *const ::core::ffi::c_void,
-    pub dlpi_phnum: u32,
-    pub dlpi_adds: ::core::ffi::c_ulonglong,
-    pub dlpi_subs: ::core::ffi::c_ulonglong,
-    pub dlpi_tls_modid: usize,
-    pub dlpi_tls_data: *mut ::core::ffi::c_void,
+    pub addr: usize,
+    pub name: *const ::core::ffi::c_char,
+    pub phdr: *const ::core::ffi::c_void,
+    pub phnum: u32,
+    pub adds: ::core::ffi::c_ulonglong,
+    pub subs: ::core::ffi::c_ulonglong,
+    pub tls_modid: usize,
+    pub tls_data: *mut ::core::ffi::c_void,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of dl_phdr_info"][::core::mem::size_of::<dl_phdr_info>() - 64usize];
     ["Alignment of dl_phdr_info"][::core::mem::align_of::<dl_phdr_info>() - 8usize];
-    ["Offset of field: dl_phdr_info::dlpi_addr"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_addr) - 0usize];
-    ["Offset of field: dl_phdr_info::dlpi_name"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_name) - 8usize];
-    ["Offset of field: dl_phdr_info::dlpi_phdr"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_phdr) - 16usize];
-    ["Offset of field: dl_phdr_info::dlpi_phnum"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_phnum) - 24usize];
-    ["Offset of field: dl_phdr_info::dlpi_adds"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_adds) - 32usize];
-    ["Offset of field: dl_phdr_info::dlpi_subs"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_subs) - 40usize];
-    ["Offset of field: dl_phdr_info::dlpi_tls_modid"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_tls_modid) - 48usize];
-    ["Offset of field: dl_phdr_info::dlpi_tls_data"]
-        [::core::mem::offset_of!(dl_phdr_info, dlpi_tls_data) - 56usize];
+    ["Offset of field: dl_phdr_info::addr"][::core::mem::offset_of!(dl_phdr_info, addr) - 0usize];
+    ["Offset of field: dl_phdr_info::name"][::core::mem::offset_of!(dl_phdr_info, name) - 8usize];
+    ["Offset of field: dl_phdr_info::phdr"][::core::mem::offset_of!(dl_phdr_info, phdr) - 16usize];
+    ["Offset of field: dl_phdr_info::phnum"]
+        [::core::mem::offset_of!(dl_phdr_info, phnum) - 24usize];
+    ["Offset of field: dl_phdr_info::adds"][::core::mem::offset_of!(dl_phdr_info, adds) - 32usize];
+    ["Offset of field: dl_phdr_info::subs"][::core::mem::offset_of!(dl_phdr_info, subs) - 40usize];
+    ["Offset of field: dl_phdr_info::tls_modid"]
+        [::core::mem::offset_of!(dl_phdr_info, tls_modid) - 48usize];
+    ["Offset of field: dl_phdr_info::tls_data"]
+        [::core::mem::offset_of!(dl_phdr_info, tls_data) - 56usize];
 };
 pub type loaded_image_id = u32;
 #[repr(C)]

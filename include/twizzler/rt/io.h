@@ -10,6 +10,8 @@ extern "C" {
 enum io_error {
   IoError_Success,
   IoError_Other,
+  IoError_SeekError,
+  IoError_InvalidDesc,
   IoError_WouldBlock,
 };
 

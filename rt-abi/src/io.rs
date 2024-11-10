@@ -5,6 +5,8 @@ use crate::fd::RawFd;
 pub enum IoError {
     Other = crate::bindings::io_error_IoError_Other,
     WouldBlock = crate::bindings::io_error_IoError_WouldBlock,
+    SeekError = crate::bindings::io_error_IoError_SeekError,
+    InvalidDesc = crate::bindings::io_error_IoError_InvalidDesc,
 }
 
 bitflags::bitflags! {

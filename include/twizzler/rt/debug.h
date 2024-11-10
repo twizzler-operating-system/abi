@@ -8,17 +8,15 @@
 extern "C" {
 #endif
 
-/// This is a test.
 struct dl_phdr_info {
-	/// Foo.
-	uintptr_t dlpi_addr;
-	const char *dlpi_name;
-	const void *dlpi_phdr;
-  uint32_t dlpi_phnum;
-	unsigned long long int dlpi_adds;
-	unsigned long long int dlpi_subs;
-	size_t dlpi_tls_modid;
-	void *dlpi_tls_data;
+	uintptr_t addr;
+	const char *name;
+	const void *phdr;
+  uint32_t phnum;
+	unsigned long long int adds;
+	unsigned long long int subs;
+	size_t tls_modid;
+	void *tls_data;
 };
 
 typedef uint32_t loaded_image_id;

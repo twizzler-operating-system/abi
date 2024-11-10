@@ -96,18 +96,30 @@ impl core::fmt::Debug for ObjID {
 #[repr(transparent)]
 pub struct ObjectHandle(pub(crate) crate::bindings::object_handle);
 
-bitflags::bitflags! {
-    /// Flags for mapping objects.
-    pub struct MapFlags : crate::bindings::map_flags {
-        /// Request READ access.
-        const MAP_READ = crate::bindings::MAP_FLAG_R;
-        /// Request WRITE access.
-        const MAP_WRITE = crate::bindings::MAP_FLAG_W;
-        /// Request EXECUTE access.
-        const MAP_EXEC = crate::bindings::MAP_FLAG_X;
+#[cfg(not(feature = "kernel"))]
+impl core::fmt::Debug for ObjectHandle {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(f, "ObjectHandle({:?}, {:p}, {:x}, {:?})", self.id(), self.start(), self.valid_len(), self.map_flags())
     }
 }
 
+unsafe impl Send for ObjectHandle {}
+unsafe impl Sync for ObjectHandle {}
+
+bitflags::bitflags! {
+    /// Flags for mapping objects.
+    #[derive(Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord, Debug)]
+    pub struct MapFlags : crate::bindings::map_flags {
+        /// Request READ access.
+        const READ = crate::bindings::MAP_FLAG_R;
+        /// Request WRITE access.
+        const WRITE = crate::bindings::MAP_FLAG_W;
+        /// Request EXECUTE access.
+        const EXEC = crate::bindings::MAP_FLAG_X;
+    }
+}
+
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 #[repr(u32)]
 /// Possible errors for mapping objects.
 pub enum MapError {
@@ -141,6 +153,26 @@ impl TryFrom<crate::bindings::map_error> for MapError {
 impl ObjectHandle {
     fn refs(&self) -> *const AtomicU64 {
         self.0.runtime_info.cast()
+    }
+
+    pub fn start(&self) -> *mut u8 {
+        self.0.start.cast()
+    }
+
+    pub fn meta(&self) -> *mut u8 {
+        self.0.meta.cast()
+    }
+
+    pub fn map_flags(&self) -> MapFlags {
+        MapFlags::from_bits_truncate(self.0.map_flags)
+    }
+
+    pub fn valid_len(&self) -> usize {
+        self.0.valid_len as usize
+    }
+
+    pub fn id(&self) -> ObjID {
+        ObjID::new(self.0.id)
     }
 }
 
