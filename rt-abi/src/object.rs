@@ -149,6 +149,12 @@ impl TryFrom<crate::bindings::map_error> for MapError {
     }
 }
 
+impl From<MapError> for crate::bindings::map_error {
+    fn from(value: MapError) -> Self {
+        value as Self
+    }
+}
+
 #[cfg(not(feature = "kernel"))]
 impl ObjectHandle {
     fn refs(&self) -> *const AtomicU64 {
@@ -173,6 +179,11 @@ impl ObjectHandle {
 
     pub fn id(&self) -> ObjID {
         ObjID::new(self.0.id)
+    }
+
+    pub fn into_raw(self) -> crate::bindings::object_handle {
+        let this = core::mem::ManuallyDrop::new(self);
+        this.0
     }
 }
 
@@ -211,6 +222,39 @@ impl Drop for ObjectHandle {
         // of the data.
         core::sync::atomic::fence(Ordering::Acquire);
         twz_rt_release_handle(self);
+    }
+}
+
+impl Default for crate::bindings::object_handle {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            map_flags: 0,
+            start: core::ptr::null_mut(),
+            meta: core::ptr::null_mut(),
+            runtime_info: core::ptr::null_mut(),
+            valid_len: 0,
+        }
+    }
+}
+
+#[cfg(not(feature = "kernel"))]
+impl From<Result<ObjectHandle, MapError>> for crate::bindings::map_result {
+    fn from(value: Result<ObjectHandle, MapError>) -> Self {
+        match value {
+            Ok(handle) => {
+                Self {
+                    handle: handle.into_raw(),
+                    error: crate::bindings::map_error_MapError_Success,
+                }
+            }
+            Err(e) => {
+                Self {
+                    handle: crate::bindings::object_handle::default(),
+                    error: e.into(),
+                }
+            }
+        }
     }
 }
 

@@ -16,10 +16,37 @@ pub enum SpawnError {
     KernelError = crate::bindings::spawn_error_Spawn_KernelError,
 }
 
+impl From<SpawnError> for crate::bindings::spawn_error {
+    fn from(value: SpawnError) -> Self {
+        value as Self
+    }
+}
+
+impl From<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
+    fn from(value: Result<ThreadId, SpawnError>) -> Self {
+        match value {
+            Ok(id) => Self {
+                id,
+                err: crate::bindings::spawn_error_Spawn_Success,
+            },
+            Err(e) => Self {
+                id: 0,
+                err: e.into(),
+            }
+        }
+    }
+}
+
 #[repr(u32)]
 pub enum JoinError {
     ThreadNotFound = crate::bindings::join_result_Join_ThreadNotFound,
     Timeout = crate::bindings::join_result_Join_Timeout,
+}
+
+impl From<JoinError> for crate::bindings::join_result {
+    fn from(value: JoinError) -> Self {
+        value as Self
+    }
 }
 
 pub fn twz_rt_futex_wait(word: &AtomicFutexWord, expected: FutexWord, timeout: Option<Duration>) -> bool {
