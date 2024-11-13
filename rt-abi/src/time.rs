@@ -7,6 +7,12 @@ pub enum Monotonicity {
     Strict = crate::bindings::monotonicity_StrongMonotonic,
 }
 
+impl Into<u32> for Monotonicity {
+    fn into(self) -> u32 {
+        self as u32
+    }
+}
+
 pub fn twz_rt_get_monotonic_time() -> Duration {
     todo!()
 }

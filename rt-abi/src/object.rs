@@ -185,6 +185,22 @@ impl ObjectHandle {
         let this = core::mem::ManuallyDrop::new(self);
         this.0
     }
+
+    pub fn from_raw(raw: crate::bindings::object_handle) -> Self {
+        Self(raw)
+    }
+
+    pub unsafe fn new(
+        id: ObjID,
+        runtime_info: *mut core::ffi::c_void,
+        start: *mut core::ffi::c_void,
+        meta: *mut core::ffi::c_void,
+        map_flags: MapFlags,
+        valid_len: u32) -> Self {
+        Self::from_raw(crate::bindings::object_handle {
+            id: id.0, runtime_info, start, meta, map_flags: map_flags.bits(), valid_len
+        })
+    }
 }
 
 #[cfg(not(feature = "kernel"))]
