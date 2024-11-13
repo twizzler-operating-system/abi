@@ -7,18 +7,32 @@ pub enum Monotonicity {
     Strict = crate::bindings::monotonicity_StrongMonotonic,
 }
 
-impl Into<u32> for Monotonicity {
-    fn into(self) -> u32 {
-        self as u32
+impl Into<crate::bindings::monotonicity> for Monotonicity {
+    fn into(self) -> crate::bindings::monotonicity {
+        self as crate::bindings::monotonicity
+    }
+}
+
+impl From<crate::bindings::monotonicity> for Monotonicity {
+    fn from(value: crate::bindings::monotonicity) -> Self {
+        match value {
+            crate::bindings::monotonicity_WeakMonotonic => Self::Weak,
+            crate::bindings::monotonicity_StrongMonotonic => Self::Strict,
+            _ => Self::NonMonotonic,
+        }
     }
 }
 
 pub fn twz_rt_get_monotonic_time() -> Duration {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_get_monotonic_time().into()
+    }
 }
 
 pub fn twz_rt_get_system_time() -> Duration {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_get_system_time().into()
+    }
 }
 
 impl From<Duration> for crate::bindings::duration {
@@ -33,5 +47,22 @@ impl From<Duration> for crate::bindings::duration {
 impl From<crate::bindings::duration> for Duration {
     fn from(value: crate::bindings::duration) -> Self {
         Self::new(value.seconds, value.nanos)
+    }
+}
+
+impl From<Option<Duration>> for crate::bindings::option_duration {
+    fn from(value: Option<Duration>) -> Self {
+        match value {
+            Some(dur) => Self {
+                dur: dur.into(),
+                is_some: 1,
+            },
+            None => Self {
+                dur: crate::bindings::duration {
+                    seconds: 0, nanos: 0,
+                },
+                is_some: 0,
+            }
+        }
     }
 }

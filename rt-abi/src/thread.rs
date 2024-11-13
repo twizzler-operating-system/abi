@@ -22,6 +22,21 @@ impl From<SpawnError> for crate::bindings::spawn_error {
     }
 }
 
+impl TryFrom<crate::bindings::spawn_error> for SpawnError {
+    type Error = ();
+    fn try_from(value: crate::bindings::spawn_error) -> Result<Self, ()> {
+        Ok(match value {
+            crate::bindings::spawn_error_Spawn_Other => SpawnError::Other,
+            crate::bindings::spawn_error_Spawn_InvalidArgument => SpawnError::InvalidArgument,
+            crate::bindings::spawn_error_Spawn_ObjectNotFound => SpawnError::ObjectNotFound,
+            crate::bindings::spawn_error_Spawn_PermissionDenied => SpawnError::PermissionDenied,
+            crate::bindings::spawn_error_Spawn_KernelError => SpawnError::KernelError,
+            n if n != crate::bindings::spawn_error_Spawn_Success => return Err(()),
+            _ => SpawnError::Other,
+        })
+    }
+}
+
 impl From<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
     fn from(value: Result<ThreadId, SpawnError>) -> Self {
         match value {
@@ -37,8 +52,18 @@ impl From<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
     }
 }
 
+impl Into<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
+    fn into(self) -> Result<ThreadId, SpawnError> {
+        if let Ok(e) = self.err.try_into() {
+            return Err(e);
+        }
+        Ok(self.id)
+    }
+}
+
 #[repr(u32)]
 pub enum JoinError {
+    Other = crate::bindings::join_result_Join_Other,
     ThreadNotFound = crate::bindings::join_result_Join_ThreadNotFound,
     Timeout = crate::bindings::join_result_Join_Timeout,
 }
@@ -50,33 +75,58 @@ impl From<JoinError> for crate::bindings::join_result {
 }
 
 pub fn twz_rt_futex_wait(word: &AtomicFutexWord, expected: FutexWord, timeout: Option<Duration>) -> bool {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_futex_wait(word.as_ptr().cast(), expected, timeout.into())
+    }
 }
 
 pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> bool {
-    todo!()
+    let max = match max {
+        Some(max) => max as i64,
+        None => crate::bindings::FUTEX_WAKE_ALL,
+    };
+    unsafe {
+        crate::bindings::twz_rt_futex_wake(word.as_ptr().cast(), max)
+    }
 }
 
 pub fn twz_rt_yield() {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_yield_now();
+    }
 }
 
 pub fn twz_rt_sleep(dur: Duration) {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_sleep(dur.into());
+    }
 }
 
 pub fn twz_rt_set_thread_name(name: &core::ffi::CStr) {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_set_name(name.as_ptr());
+    }
 }
 
 pub fn twz_rt_tls_get_addr(index: &TlsIndex) {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_tls_get_addr(index as *const _ as *mut _);
+    }
 }
 
 pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId, SpawnError> {
-    todo!()
+    unsafe {
+        crate::bindings::twz_rt_spawn_thread(args).into()
+    }
 }
 
 pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<(), JoinError> {
-    todo!()
+    unsafe {
+        match crate::bindings::twz_rt_join_thread(id, timeout.into()) {
+            crate::bindings::join_result_Join_Success => Ok(()),
+            crate::bindings::join_result_Join_Timeout => Err(JoinError::Timeout),
+            crate::bindings::join_result_Join_ThreadNotFound => Err(JoinError::ThreadNotFound),
+            _ => Err(JoinError::Other),
+        }
+    }
 }

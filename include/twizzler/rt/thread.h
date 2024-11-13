@@ -53,6 +53,7 @@ extern struct spawn_result twz_rt_spawn_thread(struct spawn_args args);
 
 enum join_result {
   Join_Success,
+  Join_Other,
   Join_ThreadNotFound,
   Join_Timeout,
 };

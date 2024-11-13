@@ -321,8 +321,9 @@ extern "C-unwind" {
     pub fn twz_rt_spawn_thread(args: spawn_args) -> spawn_result;
 }
 pub const join_result_Join_Success: join_result = 0;
-pub const join_result_Join_ThreadNotFound: join_result = 1;
-pub const join_result_Join_Timeout: join_result = 2;
+pub const join_result_Join_Other: join_result = 1;
+pub const join_result_Join_ThreadNotFound: join_result = 2;
+pub const join_result_Join_Timeout: join_result = 3;
 pub type join_result = ::core::ffi::c_uint;
 extern "C-unwind" {
     pub fn twz_rt_join_thread(id: thread_id, timeout: option_duration) -> join_result;
@@ -370,7 +371,7 @@ const _: () = {
     ["Offset of field: open_info::name"][::core::mem::offset_of!(open_info, name) - 0usize];
     ["Offset of field: open_info::len"][::core::mem::offset_of!(open_info, len) - 8usize];
 };
-pub const open_error_OpenError_Sucess: open_error = 0;
+pub const open_error_OpenError_Success: open_error = 0;
 pub const open_error_OpenError_Other: open_error = 1;
 pub const open_error_OpenError_LookupFail: open_error = 2;
 pub const open_error_OpenError_PermissionDenied: open_error = 3;
@@ -394,6 +395,34 @@ extern "C-unwind" {
 }
 extern "C-unwind" {
     pub fn twz_rt_fd_close(fd: descriptor);
+}
+pub type fd_flags = u32;
+pub const FD_IS_TERMINAL: fd_flags = 1;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct fd_info {
+    pub flags: fd_flags,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of fd_info"][::core::mem::size_of::<fd_info>() - 4usize];
+    ["Alignment of fd_info"][::core::mem::align_of::<fd_info>() - 4usize];
+    ["Offset of field: fd_info::flags"][::core::mem::offset_of!(fd_info, flags) - 0usize];
+};
+extern "C-unwind" {
+    pub fn twz_rt_fd_get_info(fd: descriptor, info: *mut fd_info) -> bool;
+}
+pub type fd_cmd = u32;
+pub const FD_CMD_DUP: fd_cmd = 1;
+pub type fd_cmd_err = u32;
+pub const FD_CMD_SUCCESS: fd_cmd_err = 0;
+extern "C-unwind" {
+    pub fn twz_rt_fd_cmd(
+        fd: descriptor,
+        cmd: fd_cmd,
+        arg: *mut ::core::ffi::c_void,
+        ret: *mut ::core::ffi::c_void,
+    ) -> fd_cmd_err;
 }
 pub const io_error_IoError_Success: io_error = 0;
 pub const io_error_IoError_Other: io_error = 1;
@@ -420,17 +449,21 @@ pub const IO_NONBLOCKING: io_flags = 1;
 pub const WHENCE_START: whence = 0;
 pub const WHENCE_END: whence = 1;
 pub const WHENCE_CURRENT: whence = 2;
+pub type optional_offset = i64;
+pub const FD_POS: optional_offset = -1;
 extern "C-unwind" {
-    pub fn twz_rt_fd_read(
+    pub fn twz_rt_fd_pread(
         fd: descriptor,
+        offset: optional_offset,
         buf: *mut ::core::ffi::c_void,
         len: usize,
         flags: io_flags,
     ) -> io_result;
 }
 extern "C-unwind" {
-    pub fn twz_rt_fd_write(
+    pub fn twz_rt_fd_pwrite(
         fd: descriptor,
+        offset: optional_offset,
         buf: *const ::core::ffi::c_void,
         len: usize,
         flags: io_flags,
@@ -452,8 +485,6 @@ const _: () = {
     ["Offset of field: io_vec::buf"][::core::mem::offset_of!(io_vec, buf) - 0usize];
     ["Offset of field: io_vec::len"][::core::mem::offset_of!(io_vec, len) - 8usize];
 };
-pub type optional_offset = i64;
-pub const FD_POS: optional_offset = -1;
 extern "C-unwind" {
     pub fn twz_rt_fd_preadv(
         fd: descriptor,
