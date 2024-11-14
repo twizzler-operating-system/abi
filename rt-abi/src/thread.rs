@@ -8,6 +8,7 @@ pub type AtomicFutexWord = core::sync::atomic::AtomicU32;
 pub type ThreadSpawnArgs = crate::bindings::spawn_args;
 
 #[repr(u32)]
+#[derive(Debug, Copy, Clone)]
 pub enum SpawnError {
     Other = crate::bindings::spawn_error_Spawn_Other,
     InvalidArgument = crate::bindings::spawn_error_Spawn_InvalidArgument,
@@ -31,7 +32,7 @@ impl TryFrom<crate::bindings::spawn_error> for SpawnError {
             crate::bindings::spawn_error_Spawn_ObjectNotFound => SpawnError::ObjectNotFound,
             crate::bindings::spawn_error_Spawn_PermissionDenied => SpawnError::PermissionDenied,
             crate::bindings::spawn_error_Spawn_KernelError => SpawnError::KernelError,
-            n if n != crate::bindings::spawn_error_Spawn_Success => return Err(()),
+            crate::bindings::spawn_error_Spawn_Success => return Err(()),
             _ => SpawnError::Other,
         })
     }
