@@ -208,7 +208,7 @@ impl Clone for ObjectHandle {
     fn clone(&self) -> Self {
         unsafe {       
             let Some(ref rc) = self.refs().as_ref() else {
-                panic!("cannot clone an unsafe object handle");
+                return Self(self.0);
             };
             // This use of Relaxed ordering is justified by https://doc.rust-lang.org/nomicon/arc-mutex/arc-clone.html.
             let old_count = rc.fetch_add(1, Ordering::Relaxed);

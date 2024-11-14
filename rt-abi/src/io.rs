@@ -53,6 +53,21 @@ impl Into<Result<usize, IoError>> for crate::bindings::io_result {
     }
 }
 
+impl From<Result<usize, IoError>> for crate::bindings::io_result {
+    fn from(value: Result<usize, IoError>) -> Self {
+        match value {
+            Ok(v) => Self {
+                value: v,
+                error: crate::bindings::io_error_IoError_Success,
+            },
+            Err(e) => Self {
+                value: 0,
+                error: e as u32,
+            },
+        }
+    }
+}
+
 pub fn twz_rt_fd_pread(fd: RawFd, offset: Option<u64>, buf: &mut [u8], flags: IoFlags) -> Result<usize, IoError> {
     unsafe { crate::bindings::twz_rt_fd_pread(fd, optoff(offset), buf.as_mut_ptr().cast(), buf.len(), flags.bits()).into() }
 }
