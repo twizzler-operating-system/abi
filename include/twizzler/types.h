@@ -6,22 +6,21 @@
 extern "C" {
 #endif
 
-struct rt_slice {
-  size_t len;
-  void *ptr;
-};
-
+/// Object ID
 typedef __uint128_t rt_objid;
 
+/// Duration, containing seconds and nanoseconds.
 struct duration {
   uint64_t seconds;
   uint32_t nanos;
 };
 
+/// Optional duration.
 struct option_duration {
   struct duration dur;
   int32_t is_some;
 };
+
 #ifdef __cplusplus
 }
 #endif
