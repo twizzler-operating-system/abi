@@ -1,4 +1,4 @@
-#![allow(unused_variables)]
+//! Interface for objects and object handles.
 
 use core::sync::atomic::{AtomicU64, Ordering};
 use core::mem::MaybeUninit;
@@ -47,6 +47,7 @@ impl ObjID {
     }
 
     #[deprecated]
+    /// Read the raw value.
     pub const fn as_u128(&self) -> u128 {
         self.0
     }
@@ -161,35 +162,46 @@ impl ObjectHandle {
         self.0.runtime_info.cast()
     }
 
+    /// Get a pointer to the start of object data.
     pub fn start(&self) -> *mut u8 {
         self.0.start.cast()
     }
 
+    /// Get a pointer to the metadata structure.
     pub fn meta(&self) -> *mut u8 {
         self.0.meta.cast()
     }
 
+    /// Get map flags.
     pub fn map_flags(&self) -> MapFlags {
         MapFlags::from_bits_truncate(self.0.map_flags)
     }
 
+    /// Get the number of valid bytes after start pointer for object data.
     pub fn valid_len(&self) -> usize {
-        self.0.valid_len as usize
+        (self.0.valid_len as usize) * crate::bindings::LEN_MUL
     }
 
+    /// Get the object ID.
     pub fn id(&self) -> ObjID {
         ObjID::new(self.0.id)
     }
 
+    /// Get the raw object handle.
     pub fn into_raw(self) -> crate::bindings::object_handle {
         let this = core::mem::ManuallyDrop::new(self);
         this.0
     }
 
+    /// Build an object handle from raw.
     pub fn from_raw(raw: crate::bindings::object_handle) -> Self {
         Self(raw)
     }
 
+    /// Make a new object handle.
+    ///
+    /// # Safety
+    /// The caller must ensure that runtime_info is a valid pointer, and points to a repr(C) struct that starts with an AtomicU64 for reference counting.
     pub unsafe fn new(
         id: ObjID,
         runtime_info: *mut core::ffi::c_void,

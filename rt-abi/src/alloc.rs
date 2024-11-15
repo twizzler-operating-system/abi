@@ -1,3 +1,5 @@
+//! Functions for allocating memory from the runtime.
+
 use core::alloc::Layout;
 
 bitflags::bitflags! {

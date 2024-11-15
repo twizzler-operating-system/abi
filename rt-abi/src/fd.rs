@@ -1,11 +1,18 @@
+//! Runtime interface for file descriptors.
+
 pub use crate::bindings::descriptor as RawFd;
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u32)]
+/// Possible Open error states.
 pub enum OpenError {
+    /// Unclassified errror.
     Other = crate::bindings::open_error_OpenError_Other,
+    /// Lookup failed.
     LookupFail = crate::bindings::open_error_OpenError_LookupFail,
+    /// Permission denied.
     PermissionDenied = crate::bindings::open_error_OpenError_PermissionDenied,
+    /// An argument was invalid.
     InvalidArgument = crate::bindings::open_error_OpenError_InvalidArgument,
 }
 
@@ -52,14 +59,18 @@ impl From<Result<RawFd, OpenError>> for crate::bindings::open_result {
 }
 
 bitflags::bitflags! {
+    /// Flags for file descriptors.
     #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 pub struct FdFlags : crate::bindings::fd_flags {
+    /// The file descriptor refers to a terminal.
     const IS_TERMINAL = crate::bindings::FD_IS_TERMINAL;
 }
 }
 
+/// Information about an open file descriptor.
 #[derive(Copy, Clone, Debug)]
 pub struct FdInfo {
+    /// Flags for this descriptor
     pub flags: FdFlags,
 }
 
@@ -71,6 +82,7 @@ impl From<crate::bindings::fd_info> for FdInfo {
     }
 }
 
+/// Get information about an open file descriptor. If the fd is invalid or closed, returns None.
 pub fn twz_rt_fd_get_info(fd: RawFd) -> Option<FdInfo> {
     let mut info = core::mem::MaybeUninit::uninit();
     unsafe {
@@ -81,6 +93,7 @@ pub fn twz_rt_fd_get_info(fd: RawFd) -> Option<FdInfo> {
     None
 }
 
+/// Open a file descriptor by name, as a C-string.
 pub fn twz_rt_fd_copen(name: &core::ffi::CStr) -> Result<RawFd, OpenError> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
@@ -95,6 +108,7 @@ pub fn twz_rt_fd_copen(name: &core::ffi::CStr) -> Result<RawFd, OpenError> {
     }
 }
 
+/// Open a file descriptor by name, as a Rust-string.
 pub fn twz_rt_fd_open(name: &str) -> Result<RawFd, OpenError> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
@@ -109,6 +123,7 @@ pub fn twz_rt_fd_open(name: &str) -> Result<RawFd, OpenError> {
     }
 }
 
+/// Duplicate a file descriptor.
 pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
     let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
     unsafe {
@@ -119,6 +134,7 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
     Err(OpenError::Other)
 }
 
+/// Close a file descriptor. If the fd is already closed, or invalid, this function has no effect.
 pub fn twz_rt_fd_close(fd: RawFd) {
     unsafe {
         crate::bindings::twz_rt_fd_close(fd)

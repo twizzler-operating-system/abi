@@ -1,5 +1,8 @@
+//! Functions for interacting with the runtime's support for time, monotonic and system.
+
 use core::time::Duration;
 
+/// Possible monotonicities supported by the system monotonic clock.
 #[repr(u32)]
 pub enum Monotonicity {
     NonMonotonic = crate::bindings::monotonicity_NonMonotonic,
@@ -23,12 +26,14 @@ impl From<crate::bindings::monotonicity> for Monotonicity {
     }
 }
 
+/// Read the system monotonic clock.
 pub fn twz_rt_get_monotonic_time() -> Duration {
     unsafe {
         crate::bindings::twz_rt_get_monotonic_time().into()
     }
 }
 
+/// Read the system time.
 pub fn twz_rt_get_system_time() -> Duration {
     unsafe {
         crate::bindings::twz_rt_get_system_time().into()

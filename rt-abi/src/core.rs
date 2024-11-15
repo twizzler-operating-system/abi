@@ -1,3 +1,6 @@
+//! Low-level runtime functionality. 
+
+/// Type for exit code.
 pub type ExitCode = crate::bindings::exit_code;
 
 /// Exit with the provided error code. If the main thread for a program

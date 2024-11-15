@@ -1,3 +1,5 @@
+//! Functions for interfacing with debug info from the runtime.
+
 use crate::object::ObjectHandle;
 use core::mem::MaybeUninit;
 
