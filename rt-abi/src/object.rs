@@ -33,14 +33,12 @@ impl ObjID {
         [(self.0 >> 64) as u64, (self.0 & 0xffffffffffffffff) as u64]
     }
 
-    // TODO: remove this
     #[deprecated]
     pub const fn split(&self) -> (u64, u64) {
         let parts = self.parts();
         (parts[0], parts[1])
     }
 
-    // TODO: remove this
     #[deprecated]
     pub const fn new_from_parts(hi: u64, lo: u64) -> Self {
         Self::from_parts([hi, lo])

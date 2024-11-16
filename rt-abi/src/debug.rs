@@ -3,7 +3,9 @@
 use crate::object::ObjectHandle;
 use core::mem::MaybeUninit;
 
+/// Information about loaded image program headers.
 pub type DlPhdrInfo = crate::bindings::dl_phdr_info;
+/// Loaded image identifier.
 pub type LoadedImageId = crate::bindings::loaded_image_id;
 
 /// A loaded runtime program component, and the associated image (executable or library) file.
