@@ -1,4 +1,4 @@
-//! Low-level runtime functionality. 
+//! Low-level runtime functionality.
 
 /// Type for exit code.
 pub type ExitCode = crate::bindings::exit_code;
@@ -27,9 +27,7 @@ pub fn twz_rt_abort() -> ! {
 /// as if main returned the provided [ExitCode].
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_pre_main_hook() -> Option<ExitCode> {
-    unsafe {
-        crate::bindings::twz_rt_pre_main_hook().into()
-    }
+    unsafe { crate::bindings::twz_rt_pre_main_hook().into() }
 }
 
 impl From<crate::bindings::option_exit_code> for Option<ExitCode> {
@@ -51,17 +49,18 @@ pub fn twz_rt_post_main_hook() {
     }
 }
 
-pub use crate::bindings::basic_aux as BasicAux;
-pub use crate::bindings::basic_return as BasicReturn;
-pub use crate::bindings::runtime_info as RuntimeInfo;
-pub use crate::bindings::comp_init_info as CompartmentInitInfo;
-pub use crate::bindings::minimal_init_info as MinimalInitInfo;
-pub use crate::bindings::init_info_ptrs as InitInfoPtrs;
-pub use crate::bindings::{RUNTIME_INIT_MIN, RUNTIME_INIT_MONITOR, RUNTIME_INIT_COMP};
+pub use crate::bindings::{
+    basic_aux as BasicAux, basic_return as BasicReturn, comp_init_info as CompartmentInitInfo,
+    init_info_ptrs as InitInfoPtrs, minimal_init_info as MinimalInitInfo,
+    runtime_info as RuntimeInfo, RUNTIME_INIT_COMP, RUNTIME_INIT_MIN, RUNTIME_INIT_MONITOR,
+};
 
 /// The entry point for the runtime. Not for public use.
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_runtime_entry(info: *const RuntimeInfo, std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn) -> ! {
+pub fn twz_rt_runtime_entry(
+    info: *const RuntimeInfo,
+    std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn,
+) -> ! {
     unsafe {
         crate::bindings::twz_rt_runtime_entry(info, Some(std_entry));
         unreachable!()

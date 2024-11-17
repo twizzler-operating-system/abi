@@ -1,7 +1,8 @@
 //! Functions for interfacing with debug info from the runtime.
 
-use crate::object::ObjectHandle;
 use core::mem::MaybeUninit;
+
+use crate::object::ObjectHandle;
 
 /// Information about loaded image program headers.
 pub type DlPhdrInfo = crate::bindings::dl_phdr_info;
@@ -20,9 +21,7 @@ impl LoadedImage {
     /// Get a byte slice of the image.
     pub fn image(&self) -> &[u8] {
         // Safety: the runtime ensures that these are valid for a byte slice.
-        unsafe {
-            core::slice::from_raw_parts(self.0.image_start.cast(), self.0.image_len)
-        }
+        unsafe { core::slice::from_raw_parts(self.0.image_start.cast(), self.0.image_len) }
     }
 
     /// Get an owned object handle for the image.
@@ -37,7 +36,7 @@ impl LoadedImage {
         core::mem::forget(phantom_handle);
         handle
     }
-    
+
     /// Get the runtime ID of the loaded image.
     pub fn id(&self) -> LoadedImageId {
         self.0.id
@@ -87,7 +86,7 @@ pub fn twz_rt_get_loaded_image(id: LoadedImageId) -> Option<LoadedImage> {
 /*
 /// Iterate over the loaded program components known to the runtime. This function has similar semantics
 /// to C's dl_iter_phdr. This function will call f with a [DlPhdrInfo] for each known loaded component,
-/// until all components are processed, or until f returns a non-zero value (which this function then returns). 
+/// until all components are processed, or until f returns a non-zero value (which this function then returns).
 pub fn twz_rt_iter_phdr(f: &dyn Fn(&DlPhdrInfo) -> i32) -> i32 {
     // The twz_rt_iter_phdr call acts like dl_iter_phdr, so we'll need to trampoline to call f.
     extern "C-unwind" fn trampoline(info: *const DlPhdrInfo, size: usize, data: *mut core::ffi::c_void) -> i32 {

@@ -32,10 +32,10 @@ impl core::fmt::Display for OpenError {
 impl TryFrom<crate::bindings::open_error> for OpenError {
     type Error = ();
     fn try_from(value: crate::bindings::open_error) -> Result<OpenError, ()> {
-        Ok(match value { 
-            crate::bindings::open_error_OpenError_Other => OpenError::Other, 
-            crate::bindings::open_error_OpenError_LookupFail => OpenError::LookupFail, 
-            crate::bindings::open_error_OpenError_PermissionDenied => OpenError::PermissionDenied, 
+        Ok(match value {
+            crate::bindings::open_error_OpenError_Other => OpenError::Other,
+            crate::bindings::open_error_OpenError_LookupFail => OpenError::LookupFail,
+            crate::bindings::open_error_OpenError_PermissionDenied => OpenError::PermissionDenied,
             crate::bindings::open_error_OpenError_InvalidArgument => OpenError::InvalidArgument,
             n if n != crate::bindings::open_error_OpenError_Success => OpenError::Other,
             _ => return Err(()),
@@ -53,7 +53,7 @@ impl From<Result<RawFd, OpenError>> for crate::bindings::open_result {
             Err(e) => Self {
                 error: e as crate::bindings::open_error,
                 fd: 0,
-            }
+            },
         }
     }
 }
@@ -77,7 +77,7 @@ pub struct FdInfo {
 impl From<crate::bindings::fd_info> for FdInfo {
     fn from(value: crate::bindings::fd_info) -> Self {
         Self {
-            flags: FdFlags::from_bits_truncate(value.flags)
+            flags: FdFlags::from_bits_truncate(value.flags),
         }
     }
 }
@@ -127,7 +127,13 @@ pub fn twz_rt_fd_open(name: &str) -> Result<RawFd, OpenError> {
 pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
     let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
     unsafe {
-        if crate::bindings::twz_rt_fd_cmd(fd, crate::bindings::FD_CMD_DUP, core::ptr::null_mut(), new_fd.as_mut_ptr().cast()) == crate::bindings::FD_CMD_SUCCESS {
+        if crate::bindings::twz_rt_fd_cmd(
+            fd,
+            crate::bindings::FD_CMD_DUP,
+            core::ptr::null_mut(),
+            new_fd.as_mut_ptr().cast(),
+        ) == crate::bindings::FD_CMD_SUCCESS
+        {
             return Ok(new_fd.assume_init());
         }
     }
@@ -136,7 +142,5 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
 
 /// Close a file descriptor. If the fd is already closed, or invalid, this function has no effect.
 pub fn twz_rt_fd_close(fd: RawFd) {
-    unsafe {
-        crate::bindings::twz_rt_fd_close(fd)
-    }
+    unsafe { crate::bindings::twz_rt_fd_close(fd) }
 }

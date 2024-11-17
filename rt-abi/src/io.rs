@@ -28,10 +28,10 @@ bitflags::bitflags! {
 impl TryFrom<crate::bindings::io_error> for IoError {
     type Error = ();
     fn try_from(value: crate::bindings::io_error) -> Result<IoError, ()> {
-        Ok(match value { 
-            crate::bindings::io_error_IoError_Other => IoError::Other, 
-            crate::bindings::io_error_IoError_WouldBlock => IoError::WouldBlock, 
-            crate::bindings::io_error_IoError_SeekError => IoError::SeekError, 
+        Ok(match value {
+            crate::bindings::io_error_IoError_Other => IoError::Other,
+            crate::bindings::io_error_IoError_WouldBlock => IoError::WouldBlock,
+            crate::bindings::io_error_IoError_SeekError => IoError::SeekError,
             crate::bindings::io_error_IoError_InvalidDesc => IoError::InvalidDesc,
             n if n != crate::bindings::io_error_IoError_Success => IoError::Other,
             _ => return Err(()),
@@ -77,18 +77,48 @@ impl From<Result<usize, IoError>> for crate::bindings::io_result {
     }
 }
 
-/// Read a file descriptor into a buffer, up to buf.len() bytes. On success, returns the number of bytes actually read, which may
-/// be fewer than requested. If offset is None, use the file descriptor's internal position. If the file descriptor refers
-/// to a non-seekable file, and offset is Some, this function returns an error.
-pub fn twz_rt_fd_pread(fd: RawFd, offset: Option<u64>, buf: &mut [u8], flags: IoFlags) -> Result<usize, IoError> {
-    unsafe { crate::bindings::twz_rt_fd_pread(fd, optoff(offset), buf.as_mut_ptr().cast(), buf.len(), flags.bits()).into() }
+/// Read a file descriptor into a buffer, up to buf.len() bytes. On success, returns the number of
+/// bytes actually read, which may be fewer than requested. If offset is None, use the file
+/// descriptor's internal position. If the file descriptor refers to a non-seekable file, and offset
+/// is Some, this function returns an error.
+pub fn twz_rt_fd_pread(
+    fd: RawFd,
+    offset: Option<u64>,
+    buf: &mut [u8],
+    flags: IoFlags,
+) -> Result<usize, IoError> {
+    unsafe {
+        crate::bindings::twz_rt_fd_pread(
+            fd,
+            optoff(offset),
+            buf.as_mut_ptr().cast(),
+            buf.len(),
+            flags.bits(),
+        )
+        .into()
+    }
 }
 
-/// Write bytes from a buffer into a file descriptor, up to buf.len() bytes. On success, returns the number of bytes actually written, which may
-/// be fewer than requested. If offset is None, use the file descriptor's internal position. If the file descriptor refers
-/// to a non-seekable file, and offset is Some, this function returns an error.
-pub fn twz_rt_fd_pwrite(fd: RawFd, offset: Option<u64>, buf: &[u8], flags: IoFlags) -> Result<usize, IoError> {
-    unsafe { crate::bindings::twz_rt_fd_pwrite(fd, optoff(offset), buf.as_ptr().cast(), buf.len(), flags.bits()).into() }
+/// Write bytes from a buffer into a file descriptor, up to buf.len() bytes. On success, returns the
+/// number of bytes actually written, which may be fewer than requested. If offset is None, use the
+/// file descriptor's internal position. If the file descriptor refers to a non-seekable file, and
+/// offset is Some, this function returns an error.
+pub fn twz_rt_fd_pwrite(
+    fd: RawFd,
+    offset: Option<u64>,
+    buf: &[u8],
+    flags: IoFlags,
+) -> Result<usize, IoError> {
+    unsafe {
+        crate::bindings::twz_rt_fd_pwrite(
+            fd,
+            optoff(offset),
+            buf.as_ptr().cast(),
+            buf.len(),
+            flags.bits(),
+        )
+        .into()
+    }
 }
 
 /// Seek a file descriptor, changing the internal position.
@@ -98,24 +128,52 @@ pub fn twz_rt_fd_seek(fd: RawFd, seek: SeekFrom) -> Result<usize, IoError> {
         SeekFrom::End(s) => (crate::bindings::WHENCE_END, s),
         SeekFrom::Current(s) => (crate::bindings::WHENCE_CURRENT, s),
     };
-    unsafe {
-        crate::bindings::twz_rt_fd_seek(fd, whence, off).into()
-    }
+    unsafe { crate::bindings::twz_rt_fd_seek(fd, whence, off).into() }
 }
 
 /// Type of an IO vec buffer and length.
 pub type IoSlice = crate::bindings::io_vec;
 
-/// Read a file descriptor into a multiple buffers. On success, returns the number of bytes actually read, which may
-/// be fewer than requested. If offset is None, use the file descriptor's internal position. If the file descriptor refers
-/// to a non-seekable file, and offset is Some, this function returns an error.
-pub fn twz_rt_fd_preadv(fd: RawFd, offset: Option<u64>, ios: &[IoSlice], flags: IoFlags) -> Result<usize, IoError> {
-    unsafe { crate::bindings::twz_rt_fd_pwritev(fd, optoff(offset), ios.as_ptr(), ios.len(), flags.bits()).into() }
+/// Read a file descriptor into a multiple buffers. On success, returns the number of bytes actually
+/// read, which may be fewer than requested. If offset is None, use the file descriptor's internal
+/// position. If the file descriptor refers to a non-seekable file, and offset is Some, this
+/// function returns an error.
+pub fn twz_rt_fd_preadv(
+    fd: RawFd,
+    offset: Option<u64>,
+    ios: &[IoSlice],
+    flags: IoFlags,
+) -> Result<usize, IoError> {
+    unsafe {
+        crate::bindings::twz_rt_fd_pwritev(
+            fd,
+            optoff(offset),
+            ios.as_ptr(),
+            ios.len(),
+            flags.bits(),
+        )
+        .into()
+    }
 }
 
-/// Write multiple buffers into a file descriptor. On success, returns the number of bytes actually written, which may
-/// be fewer than requested. If offset is None, use the file descriptor's internal position. If the file descriptor refers
-/// to a non-seekable file, and offset is Some, this function returns an error.
-pub fn twz_rt_fd_pwritev(fd: RawFd, offset: Option<u64>, ios: &[IoSlice], flags: IoFlags) -> Result<usize, IoError> {
-    unsafe { crate::bindings::twz_rt_fd_pwritev(fd, optoff(offset), ios.as_ptr(), ios.len(), flags.bits()).into() }
+/// Write multiple buffers into a file descriptor. On success, returns the number of bytes actually
+/// written, which may be fewer than requested. If offset is None, use the file descriptor's
+/// internal position. If the file descriptor refers to a non-seekable file, and offset is Some,
+/// this function returns an error.
+pub fn twz_rt_fd_pwritev(
+    fd: RawFd,
+    offset: Option<u64>,
+    ios: &[IoSlice],
+    flags: IoFlags,
+) -> Result<usize, IoError> {
+    unsafe {
+        crate::bindings::twz_rt_fd_pwritev(
+            fd,
+            optoff(offset),
+            ios.as_ptr(),
+            ios.len(),
+            flags.bits(),
+        )
+        .into()
+    }
 }

@@ -61,7 +61,7 @@ impl From<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
             Err(e) => Self {
                 id: 0,
                 err: e.into(),
-            }
+            },
         }
     }
 }
@@ -92,13 +92,15 @@ impl From<JoinError> for crate::bindings::join_result {
     }
 }
 
-/// If the futex word pointed to by `word` is equal to expected, put the thread to sleep. This operation is
-/// atomic -- the thread is enqueued on the sleep queue _first_, before the equality check. Returns false
-/// on timeout, true on all other cases.
-pub fn twz_rt_futex_wait(word: &AtomicFutexWord, expected: FutexWord, timeout: Option<Duration>) -> bool {
-    unsafe {
-        crate::bindings::twz_rt_futex_wait(word.as_ptr().cast(), expected, timeout.into())
-    }
+/// If the futex word pointed to by `word` is equal to expected, put the thread to sleep. This
+/// operation is atomic -- the thread is enqueued on the sleep queue _first_, before the equality
+/// check. Returns false on timeout, true on all other cases.
+pub fn twz_rt_futex_wait(
+    word: &AtomicFutexWord,
+    expected: FutexWord,
+    timeout: Option<Duration>,
+) -> bool {
+    unsafe { crate::bindings::twz_rt_futex_wait(word.as_ptr().cast(), expected, timeout.into()) }
 }
 
 /// Wake up up to max threads waiting on `word`. If max is None, wake up all threads.
@@ -107,9 +109,7 @@ pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> bool {
         Some(max) => max as i64,
         None => crate::bindings::FUTEX_WAKE_ALL,
     };
-    unsafe {
-        crate::bindings::twz_rt_futex_wake(word.as_ptr().cast(), max)
-    }
+    unsafe { crate::bindings::twz_rt_futex_wake(word.as_ptr().cast(), max) }
 }
 
 /// Yield the calling thread.
@@ -135,16 +135,13 @@ pub fn twz_rt_set_thread_name(name: &core::ffi::CStr) {
 
 /// Get the address of a given TLS variable.
 pub fn twz_rt_tls_get_addr(index: &TlsIndex) -> *mut u8 {
-    unsafe {
-        crate::bindings::twz_rt_tls_get_addr(index as *const _ as *mut _).cast()
-    }
+    unsafe { crate::bindings::twz_rt_tls_get_addr(index as *const _ as *mut _).cast() }
 }
 
-/// Spawn a thread. On success, that thread starts executing concurrently with the return of this function.
+/// Spawn a thread. On success, that thread starts executing concurrently with the return of this
+/// function.
 pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId, SpawnError> {
-    unsafe {
-        crate::bindings::twz_rt_spawn_thread(args).into()
-    }
+    unsafe { crate::bindings::twz_rt_spawn_thread(args).into() }
 }
 
 /// Wait for a thread to exit, optionally timing out.

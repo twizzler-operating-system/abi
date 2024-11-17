@@ -28,16 +28,12 @@ impl From<crate::bindings::monotonicity> for Monotonicity {
 
 /// Read the system monotonic clock.
 pub fn twz_rt_get_monotonic_time() -> Duration {
-    unsafe {
-        crate::bindings::twz_rt_get_monotonic_time().into()
-    }
+    unsafe { crate::bindings::twz_rt_get_monotonic_time().into() }
 }
 
 /// Read the system time.
 pub fn twz_rt_get_system_time() -> Duration {
-    unsafe {
-        crate::bindings::twz_rt_get_system_time().into()
-    }
+    unsafe { crate::bindings::twz_rt_get_system_time().into() }
 }
 
 impl From<Duration> for crate::bindings::duration {
@@ -64,10 +60,11 @@ impl From<Option<Duration>> for crate::bindings::option_duration {
             },
             None => Self {
                 dur: crate::bindings::duration {
-                    seconds: 0, nanos: 0,
+                    seconds: 0,
+                    nanos: 0,
                 },
                 is_some: 0,
-            }
+            },
         }
     }
 }

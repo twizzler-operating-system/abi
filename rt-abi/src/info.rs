@@ -12,7 +12,5 @@ impl SystemInfo {
 
 /// Get information about the system.
 pub fn twz_rt_get_sysinfo() -> SystemInfo {
-    unsafe {
-        crate::bindings::twz_rt_get_sysinfo()
-    }
+    unsafe { crate::bindings::twz_rt_get_sysinfo() }
 }

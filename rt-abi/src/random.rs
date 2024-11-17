@@ -10,7 +10,5 @@ bitflags::bitflags! {
 
 /// Fill up to buf.len() bytes of randomness into the buffer.
 pub fn twz_rt_get_random(buf: &mut [u8], flags: GetRandomFlags) -> usize {
-    unsafe {
-        crate::bindings::twz_rt_get_random(buf.as_mut_ptr().cast(), buf.len(), flags.bits())
-    }
+    unsafe { crate::bindings::twz_rt_get_random(buf.as_mut_ptr().cast(), buf.len(), flags.bits()) }
 }

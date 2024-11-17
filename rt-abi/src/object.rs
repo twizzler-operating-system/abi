@@ -1,8 +1,10 @@
 //! Interface for objects and object handles.
 
-use core::sync::atomic::{AtomicU64, Ordering};
-use core::mem::MaybeUninit;
-use core::fmt::{UpperHex, LowerHex};
+use core::{
+    fmt::{LowerHex, UpperHex},
+    mem::MaybeUninit,
+    sync::atomic::{AtomicU64, Ordering},
+};
 
 /// An object ID.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
@@ -88,9 +90,11 @@ impl core::fmt::Debug for ObjID {
 }
 
 /// An object handle, granting access to object memory. An object handle can be in two modes:
-///   - Owning -- the normal mode, which acts like an Arc, and asks the runtime to unmap when refcount hits zero.
-///   - Unsafe -- internal use only, is NOT owning, but still has pointers. This is totally unsafe to use, and
-///               should not be exposed to users. But sometimes, it can be safe, and faster than cloning.
+///   - Owning -- the normal mode, which acts like an Arc, and asks the runtime to unmap when
+///     refcount hits zero.
+///   - Unsafe -- internal use only, is NOT owning, but still has pointers. This is totally unsafe
+///     to use, and should not be exposed to users. But sometimes, it can be safe, and faster than
+///     cloning.
 /// ... anyway, in general these have reference counting semantics, via Clone and Drop, like Arc.
 #[repr(transparent)]
 pub struct ObjectHandle(pub(crate) crate::bindings::object_handle);
@@ -98,7 +102,14 @@ pub struct ObjectHandle(pub(crate) crate::bindings::object_handle);
 #[cfg(not(feature = "kernel"))]
 impl core::fmt::Debug for ObjectHandle {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(f, "ObjectHandle({:?}, {:p}, {:x}, {:?})", self.id(), self.start(), self.valid_len(), self.map_flags())
+        write!(
+            f,
+            "ObjectHandle({:?}, {:p}, {:x}, {:?})",
+            self.id(),
+            self.start(),
+            self.valid_len(),
+            self.map_flags()
+        )
     }
 }
 
@@ -143,7 +154,7 @@ impl TryFrom<crate::bindings::map_error> for MapError {
             crate::bindings::map_error_MapError_NoSuchObject => Ok(Self::NoSuchObject),
             crate::bindings::map_error_MapError_PermissionDenied => Ok(Self::PermissionDenied),
             crate::bindings::map_error_MapError_InvalidArgument => Ok(Self::InvalidArgument),
-            _ => Ok(Self::Other)
+            _ => Ok(Self::Other),
         }
     }
 }
@@ -199,16 +210,23 @@ impl ObjectHandle {
     /// Make a new object handle.
     ///
     /// # Safety
-    /// The caller must ensure that runtime_info is a valid pointer, and points to a repr(C) struct that starts with an AtomicU64 for reference counting.
+    /// The caller must ensure that runtime_info is a valid pointer, and points to a repr(C) struct
+    /// that starts with an AtomicU64 for reference counting.
     pub unsafe fn new(
         id: ObjID,
         runtime_info: *mut core::ffi::c_void,
         start: *mut core::ffi::c_void,
         meta: *mut core::ffi::c_void,
         map_flags: MapFlags,
-        valid_len: u32) -> Self {
+        valid_len: u32,
+    ) -> Self {
         Self::from_raw(crate::bindings::object_handle {
-            id: id.0, runtime_info, start, meta, map_flags: map_flags.bits(), valid_len
+            id: id.0,
+            runtime_info,
+            start,
+            meta,
+            map_flags: map_flags.bits(),
+            valid_len,
         })
     }
 }
@@ -216,7 +234,7 @@ impl ObjectHandle {
 #[cfg(not(feature = "kernel"))]
 impl Clone for ObjectHandle {
     fn clone(&self) -> Self {
-        unsafe {       
+        unsafe {
             let Some(ref rc) = self.refs().as_ref() else {
                 return Self(self.0);
             };
@@ -268,18 +286,14 @@ impl Default for crate::bindings::object_handle {
 impl From<Result<ObjectHandle, MapError>> for crate::bindings::map_result {
     fn from(value: Result<ObjectHandle, MapError>) -> Self {
         match value {
-            Ok(handle) => {
-                Self {
-                    handle: handle.into_raw(),
-                    error: crate::bindings::map_error_MapError_Success,
-                }
-            }
-            Err(e) => {
-                Self {
-                    handle: crate::bindings::object_handle::default(),
-                    error: e.into(),
-                }
-            }
+            Ok(handle) => Self {
+                handle: handle.into_raw(),
+                error: crate::bindings::map_error_MapError_Success,
+            },
+            Err(e) => Self {
+                handle: crate::bindings::object_handle::default(),
+                error: e.into(),
+            },
         }
     }
 }
@@ -305,11 +319,23 @@ pub fn twz_rt_release_handle(handle: &mut ObjectHandle) {
 
 #[deprecated]
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_map_two_objects(id1: ObjID, flags1: MapFlags, id2: ObjID, flags2: MapFlags) -> Result<(ObjectHandle, ObjectHandle), MapError> {
+pub fn twz_rt_map_two_objects(
+    id1: ObjID,
+    flags1: MapFlags,
+    id2: ObjID,
+    flags2: MapFlags,
+) -> Result<(ObjectHandle, ObjectHandle), MapError> {
     unsafe {
         let mut res1 = MaybeUninit::uninit();
         let mut res2 = MaybeUninit::uninit();
-        crate::bindings::__twz_rt_map_two_objects(id1.raw(), flags1.bits(), id2.raw(), flags2.bits(), res1.as_mut_ptr(), res2.as_mut_ptr());
+        crate::bindings::__twz_rt_map_two_objects(
+            id1.raw(),
+            flags1.bits(),
+            id2.raw(),
+            flags2.bits(),
+            res1.as_mut_ptr(),
+            res2.as_mut_ptr(),
+        );
 
         let res1 = res1.assume_init();
         let res2 = res2.assume_init();
