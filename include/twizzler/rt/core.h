@@ -24,26 +24,27 @@ struct basic_return {
   exit_code code;
 };
 
+struct ctor_set {
+    /// Fn ptr to _init
+    void (*legacy_init)();
+    /// Pointer to the init array
+    void (**init_array)();
+    /// Length of init array
+    size_t init_array_len;
+};
+
 /// Init information for compartments
 struct comp_init_info {
-  /// Fn ptr to _init
-  void (*legacy_init)();
-  /// Pointer to the init array
-  void (**init_array)();
-  /// Length of init array
-  size_t init_array_len;
+  /// Pointer to ctor_set list
+  struct ctor_set *ctor_set_array;
+  /// Length of ctor_set array
+  size_t ctor_set_len;
   /// Pointer to compartment config info
   void *comp_config_info;
 };
 
 /// Init information for minimal runtime
 struct minimal_init_info {
-  /// Pointer to args
-  char **args;
-  /// Number of args
-  size_t argc;
-  /// Environment pointer
-  char **envp;
   /// Pointer to program headers
   void *phdrs;
   /// Number of program headers
@@ -62,6 +63,12 @@ struct runtime_info {
   int32_t flags;
   /// Discrim. for init_info.
   int32_t kind;
+  /// Pointer to args
+  char **args;
+  /// Number of args
+  size_t argc;
+  /// Environment pointer
+  char **envp;
   union init_info_ptrs init_info;
 };
 
@@ -82,6 +89,9 @@ struct option_exit_code {
 _Noreturn void twz_rt_exit(exit_code code);
 /// Abort immediately
 _Noreturn void twz_rt_abort(void);
+
+/// Signal the runtime to prep for entry from another compartment
+void twz_rt_cross_compartment_entry(void);
 
 // The below functions are not meant for public use, they are for interacting with libstd.
 

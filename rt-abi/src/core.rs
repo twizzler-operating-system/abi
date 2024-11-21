@@ -49,9 +49,17 @@ pub fn twz_rt_post_main_hook() {
     }
 }
 
+/// Called by security context code on compartment entry
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_cross_compartment_entry() {
+    unsafe {
+        crate::bindings::twz_rt_cross_compartment_entry();
+    }
+}
+
 pub use crate::bindings::{
     basic_aux as BasicAux, basic_return as BasicReturn, comp_init_info as CompartmentInitInfo,
-    init_info_ptrs as InitInfoPtrs, minimal_init_info as MinimalInitInfo,
+    ctor_set as CtorSet, init_info_ptrs as InitInfoPtrs, minimal_init_info as MinimalInitInfo,
     runtime_info as RuntimeInfo, RUNTIME_INIT_COMP, RUNTIME_INIT_MIN, RUNTIME_INIT_MONITOR,
 };
 

@@ -6,6 +6,8 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
+use crate::bindings::LEN_MUL;
+
 /// An object ID.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
 #[repr(transparent)]
@@ -181,6 +183,11 @@ impl ObjectHandle {
         self.0.meta.cast()
     }
 
+    /// Get a pointer to the runtime info.
+    pub fn runtime_info(&self) -> *mut u8 {
+        self.0.runtime_info.cast()
+    }
+
     /// Get map flags.
     pub fn map_flags(&self) -> MapFlags {
         MapFlags::from_bits_truncate(self.0.map_flags)
@@ -218,7 +225,7 @@ impl ObjectHandle {
         start: *mut core::ffi::c_void,
         meta: *mut core::ffi::c_void,
         map_flags: MapFlags,
-        valid_len: u32,
+        valid_len: usize,
     ) -> Self {
         Self::from_raw(crate::bindings::object_handle {
             id: id.0,
@@ -226,7 +233,7 @@ impl ObjectHandle {
             start,
             meta,
             map_flags: map_flags.bits(),
-            valid_len,
+            valid_len: (valid_len / LEN_MUL) as u32,
         })
     }
 }
