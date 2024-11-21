@@ -147,6 +147,20 @@ pub enum MapError {
     InvalidArgument = crate::bindings::map_error_MapError_InvalidArgument,
 }
 
+impl core::fmt::Display for MapError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            MapError::Other => write!(f, "unclassified error"),
+            MapError::OutOfResources => write!(f, "out of resources"),
+            MapError::NoSuchObject => write!(f, "no such object"),
+            MapError::PermissionDenied => write!(f, "permission denied"),
+            MapError::InvalidArgument => write!(f, "invalid argument"),
+        }
+    }
+}
+
+impl core::error::Error for MapError {}
+
 impl TryFrom<crate::bindings::map_error> for MapError {
     type Error = ();
     fn try_from(value: crate::bindings::map_error) -> Result<Self, Self::Error> {
