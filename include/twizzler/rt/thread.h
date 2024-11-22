@@ -36,6 +36,18 @@ struct tls_index {
 /// Resolve the TLS index and get back the TLS data pointer.
 extern void *twz_rt_tls_get_addr(struct tls_index *index);
 
+/// A TLS desc struct, with a resolver and value
+struct tls_desc {
+    // note: a function pointer typedef here seems to break bindgen.
+    /// Pointer to resolver
+    void *resolver;
+    /// Value to pass to the resolver
+    uint64_t value;
+};
+
+/// Resolver for tls_desc
+extern void *twz_rt_tls_desc_resolve(struct tls_desc *arg);
+
 /// Runtime-internal ID of a thread
 typedef uint32_t thread_id;
 

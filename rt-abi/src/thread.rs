@@ -7,6 +7,8 @@ use core::time::Duration;
 pub type ThreadId = crate::bindings::thread_id;
 /// Index of a TLS variable.
 pub type TlsIndex = crate::bindings::tls_index;
+/// TLS desc
+pub type TlsDesc = crate::bindings::tls_desc;
 /// Type of a linux-like wait point.
 pub type FutexWord = crate::bindings::futex_word;
 /// Atomic futex word, for a linux-like thread wait.
