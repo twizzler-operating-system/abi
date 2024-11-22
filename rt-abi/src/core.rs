@@ -69,6 +69,11 @@ unsafe impl Send for CtorSet {}
 // Safety: this holds functions pointers, but these pointers have 'static lifetime.
 unsafe impl Sync for CtorSet {}
 
+unsafe impl Send for RuntimeInfo {}
+unsafe impl Sync for RuntimeInfo {}
+unsafe impl Send for CompartmentInitInfo {}
+unsafe impl Sync for CompartmentInitInfo {}
+
 /// The entry point for the runtime. Not for public use.
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_runtime_entry(

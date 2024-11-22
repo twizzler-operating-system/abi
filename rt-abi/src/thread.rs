@@ -30,6 +30,20 @@ pub enum SpawnError {
     KernelError = crate::bindings::spawn_error_Spawn_KernelError,
 }
 
+impl core::fmt::Display for SpawnError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            SpawnError::Other => write!(f, "unclassified error"),
+            SpawnError::KernelError => write!(f, "kernel error"),
+            SpawnError::ObjectNotFound => write!(f, "no such object"),
+            SpawnError::PermissionDenied => write!(f, "permission denied"),
+            SpawnError::InvalidArgument => write!(f, "invalid argument"),
+        }
+    }
+}
+
+impl core::error::Error for SpawnError {}
+
 impl From<SpawnError> for crate::bindings::spawn_error {
     fn from(value: SpawnError) -> Self {
         value as Self
