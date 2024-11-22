@@ -2,6 +2,7 @@
 #![feature(naked_functions)]
 
 pub mod core;
+#[allow(unused_imports)]
 pub mod object;
 
 #[cfg(not(feature = "kernel"))]
