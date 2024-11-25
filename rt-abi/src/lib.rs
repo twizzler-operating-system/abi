@@ -8,6 +8,8 @@ pub mod object;
 #[cfg(not(feature = "kernel"))]
 pub mod alloc;
 #[cfg(not(feature = "kernel"))]
+pub mod arch;
+#[cfg(not(feature = "kernel"))]
 pub mod debug;
 #[cfg(not(feature = "kernel"))]
 pub mod fd;

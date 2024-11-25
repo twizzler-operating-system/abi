@@ -93,11 +93,15 @@ _Noreturn void twz_rt_abort(void);
 /// Signal the runtime to prep for entry from another compartment
 void twz_rt_cross_compartment_entry(void);
 
+/// Set the handler for an upcall from kernel
+void twz_rt_set_upcall_handler(void (*handler)(void *frame, const void *data));
+
 // The below functions are not meant for public use, they are for interacting with libstd.
 
 struct option_exit_code twz_rt_pre_main_hook(void);
 void twz_rt_post_main_hook(void);
 _Noreturn void twz_rt_runtime_entry(const struct runtime_info *arg, struct basic_return (*std_entry)(struct basic_aux));
+
 #ifdef __cplusplus
 }
 #endif
