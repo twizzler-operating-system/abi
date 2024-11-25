@@ -1,3 +1,5 @@
+#![allow(unused_imports)]
+
 #[cfg(target_arch = "x86_64")]
 #[path = "arch/x86_64.rs"]
 mod imp;
