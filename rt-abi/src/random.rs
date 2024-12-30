@@ -1,4 +1,5 @@
 //! Functions for collecting randomness.
+use core::mem::MaybeUninit;
 
 bitflags::bitflags! {
     /// Possible flags to get random.
@@ -9,6 +10,6 @@ bitflags::bitflags! {
 }
 
 /// Fill up to buf.len() bytes of randomness into the buffer.
-pub fn twz_rt_get_random(buf: &mut [u8], flags: GetRandomFlags) -> usize {
+pub fn twz_rt_get_random(buf: &mut [MaybeUninit<u8>], flags: GetRandomFlags) -> usize {
     unsafe { crate::bindings::twz_rt_get_random(buf.as_mut_ptr().cast(), buf.len(), flags.bits()) }
 }
