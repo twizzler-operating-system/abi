@@ -131,7 +131,7 @@ bitflags::bitflags! {
     }
 }
 
-#[derive(Debug, Clone, Copy, Eq, PartialEq)]
+#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
 #[repr(u32)]
 /// Possible errors for mapping objects.
 pub enum MapError {
