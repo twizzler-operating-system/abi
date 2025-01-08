@@ -334,9 +334,12 @@ pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, Map
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_get_object_handle(ptr: *const u8) -> ObjectHandle {
+pub fn twz_rt_get_object_handle(ptr: *const u8) -> Option<ObjectHandle> {
     let res = unsafe { crate::bindings::twz_rt_get_object_handle((ptr as *mut u8).cast()) };
-    ObjectHandle(res)
+    if res.id == 0 {
+        return None;
+    }
+    Some(ObjectHandle(res))
 }
 
 /// Release a handle. Should be only called by the ObjectHandle drop call.
