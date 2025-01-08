@@ -1,6 +1,7 @@
 //! Interface for objects and object handles.
 
 use core::{
+    ffi::c_void,
     fmt::{LowerHex, UpperHex},
     mem::MaybeUninit,
     sync::atomic::{AtomicU64, Ordering},
@@ -330,6 +331,12 @@ pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, Map
 
         Ok(ObjectHandle(res.handle))
     }
+}
+
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_get_object_handle(ptr: *const u8) -> ObjectHandle {
+    let res = unsafe { crate::bindings::twz_rt_get_object_handle((ptr as *mut u8).cast()) };
+    ObjectHandle(res)
 }
 
 /// Release a handle. Should be only called by the ObjectHandle drop call.

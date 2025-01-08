@@ -43,7 +43,7 @@ extern void *twz_rt_locate_object_start(void *p);
 
 /// Given a pointer, find the associated object. The returned pointer and the passed pointer p
 /// are guaranteed to be in the same object, allowing pointer arithmetic.
-extern struct object_handle *twz_rt_get_object_handle(void *p);
+extern struct object_handle twz_rt_get_object_handle(void *p);
 
 /// Resolve an FOT entry, returning an object handle for the target object with at least valid_len bytes of
 /// addressable memory.
