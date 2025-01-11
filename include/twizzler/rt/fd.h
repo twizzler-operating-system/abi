@@ -70,7 +70,7 @@ const fd_cmd FD_CMD_DUP = 1;
 /// Sync the underlying storage of the file descriptor.
 const fd_cmd FD_CMD_SYNC = 1;
 /// Delete the underlying object.
-const fd_cmd FD_CMD_DELETE = 1;
+const fd_cmd FD_CMD_DELETE = 2;
 
 /// Errors for twz_rt_fd_cmd.
 typedef uint32_t fd_cmd_err;
