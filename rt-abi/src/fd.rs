@@ -140,6 +140,30 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
     Err(OpenError::Other)
 }
 
+/// Duplicate a file descriptor.
+pub fn twz_rt_fd_sync(fd: RawFd) {
+    unsafe {
+        crate::bindings::twz_rt_fd_cmd(
+            fd,
+            crate::bindings::FD_CMD_SYNC,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+    }
+}
+
+/// Duplicate a file descriptor.
+pub fn twz_rt_fd_del(fd: RawFd) {
+    unsafe {
+        crate::bindings::twz_rt_fd_cmd(
+            fd,
+            crate::bindings::FD_CMD_DELETE,
+            core::ptr::null_mut(),
+            core::ptr::null_mut(),
+        );
+    }
+}
+
 /// Close a file descriptor. If the fd is already closed, or invalid, this function has no effect.
 pub fn twz_rt_fd_close(fd: RawFd) {
     unsafe { crate::bindings::twz_rt_fd_close(fd) }

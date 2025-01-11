@@ -67,6 +67,10 @@ typedef uint32_t fd_cmd;
 
 /// Duplicate this descriptor. The arg argument is ignored. The ret argument points to a descriptor.
 const fd_cmd FD_CMD_DUP = 1;
+/// Sync the underlying storage of the file descriptor.
+const fd_cmd FD_CMD_SYNC = 1;
+/// Delete the underlying object.
+const fd_cmd FD_CMD_DELETE = 1;
 
 /// Errors for twz_rt_fd_cmd.
 typedef uint32_t fd_cmd_err;
