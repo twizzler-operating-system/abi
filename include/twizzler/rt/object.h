@@ -53,6 +53,7 @@ extern struct map_result twz_rt_resolve_fot(struct object_handle *handle, uint64
 extern void *twz_rt_resolve_fot_local(void *start, uint64_t idx, size_t valid_len);
 
 /// Insert the given entry into the FOT, or return the existing entry if it already exists in this object's FOT.
+/// Returns -1 on failure.
 extern int64_t twz_rt_insert_fot(struct object_handle *handle, void *entry);
 
 // Not intended for public use.

@@ -342,6 +342,42 @@ pub fn twz_rt_get_object_handle(ptr: *const u8) -> Option<ObjectHandle> {
     Some(ObjectHandle(res))
 }
 
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_resolve_fot(
+    this: &ObjectHandle,
+    idx: u64,
+    valid_len: usize,
+) -> Result<ObjectHandle, MapError> {
+    unsafe {
+        let res =
+            crate::bindings::twz_rt_resolve_fot(&this.0 as *const _ as *mut _, idx, valid_len);
+        if let Ok(map_error) = res.error.try_into() {
+            return Err(map_error);
+        }
+
+        Ok(ObjectHandle(res.handle))
+    }
+}
+
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Option<u64> {
+    unsafe {
+        let res = crate::bindings::twz_rt_insert_fot(
+            &this.0 as *const _ as *mut _,
+            (entry as *mut u8).cast(),
+        );
+        res.try_into().ok()
+    }
+}
+
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_resolve_fot_local(start: *mut u8, idx: u64, valid_len: usize) -> *mut u8 {
+    unsafe {
+        let res = crate::bindings::twz_rt_resolve_fot_local(start.cast(), idx, valid_len);
+        res.cast()
+    }
+}
+
 /// Release a handle. Should be only called by the ObjectHandle drop call.
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_release_handle(handle: &mut ObjectHandle) {
