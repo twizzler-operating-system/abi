@@ -94,10 +94,16 @@ pub fn twz_rt_fd_get_info(fd: RawFd) -> Option<FdInfo> {
 }
 
 /// Open a file descriptor by name, as a C-string.
-pub fn twz_rt_fd_copen(name: &core::ffi::CStr) -> Result<RawFd, OpenError> {
+pub fn twz_rt_fd_copen(
+    name: &core::ffi::CStr,
+    create: crate::bindings::create_options,
+    flags: u32,
+) -> Result<RawFd, OpenError> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
         len: name.count_bytes(),
+        create,
+        flags,
     };
     unsafe {
         let result = crate::bindings::twz_rt_fd_open(info);
@@ -109,10 +115,16 @@ pub fn twz_rt_fd_copen(name: &core::ffi::CStr) -> Result<RawFd, OpenError> {
 }
 
 /// Open a file descriptor by name, as a Rust-string.
-pub fn twz_rt_fd_open(name: &str) -> Result<RawFd, OpenError> {
+pub fn twz_rt_fd_open(
+    name: &str,
+    create: crate::bindings::create_options,
+    flags: u32,
+) -> Result<RawFd, OpenError> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
         len: name.len(),
+        create,
+        flags,
     };
     unsafe {
         let result = crate::bindings::twz_rt_fd_open(info);

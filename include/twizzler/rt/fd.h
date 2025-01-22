@@ -9,13 +9,39 @@ extern "C" {
 /// An open descriptor for a runtime file handle.
 typedef int32_t descriptor;
 
+/// Options for creating the file.
+struct create_options {
+    /// The kind of open/create operation. See CREATE_KIND_*.
+    uint8_t kind;
+};
+
 /// Information for opening a file.
 struct open_info {
   /// File name pointer.
   const char *name;
   /// Length of file name in bytes.
   size_t len;
+  /// Creation options
+  struct create_options create;
+  /// Operation flags
+  uint32_t flags;
 };
+
+/// Open the file only if it already exists.
+const uint8_t CREATE_KIND_EXISTING = 0;
+/// Open only if it doesn't exist, and create it.
+const uint8_t CREATE_KIND_NEW = 1;
+/// Open if it already exists, or create it if it doesn't.
+const uint8_t CREATE_KIND_EITHER = 2;
+
+/// Open the file with read access.
+const uint32_t OPEN_FLAG_READ = 1;
+/// Open the file with write access.
+const uint32_t OPEN_FLAG_WRITE = 2;
+/// Truncate the file on open. Requires write access.
+const uint32_t OPEN_FLAG_TRUNCATE = 4;
+/// Always use the end of the file as the position.
+const uint32_t OPEN_FLAG_TAIL = 8;
 
 /// Possible open error conditions.
 enum open_error {
