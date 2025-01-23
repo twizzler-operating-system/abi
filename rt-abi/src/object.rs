@@ -37,23 +37,6 @@ impl ObjID {
     pub const fn parts(&self) -> [u64; Self::NR_PARTS] {
         [(self.0 >> 64) as u64, (self.0 & 0xffffffffffffffff) as u64]
     }
-
-    #[deprecated]
-    pub const fn split(&self) -> (u64, u64) {
-        let parts = self.parts();
-        (parts[0], parts[1])
-    }
-
-    #[deprecated]
-    pub const fn new_from_parts(hi: u64, lo: u64) -> Self {
-        Self::from_parts([hi, lo])
-    }
-
-    #[deprecated]
-    /// Read the raw value.
-    pub const fn as_u128(&self) -> u128 {
-        self.0
-    }
 }
 
 impl core::convert::AsRef<ObjID> for ObjID {
@@ -129,6 +112,10 @@ bitflags::bitflags! {
         const WRITE = crate::bindings::MAP_FLAG_W;
         /// Request EXECUTE access.
         const EXEC = crate::bindings::MAP_FLAG_X;
+        /// Persist changes on flush.
+        const PERSIST = crate::bindings::MAP_FLAG_PERSIST;
+        /// Use runtime support for read stability.
+        const INDIRECT = crate::bindings::MAP_FLAG_INDIRECT;
     }
 }
 

@@ -31,6 +31,10 @@ const map_flags MAP_FLAG_R = 1;
 const map_flags MAP_FLAG_W = 2;
 /// Map with EXEC permission.
 const map_flags MAP_FLAG_X = 4;
+/// Persist changes on flush.
+const map_flags MAP_FLAG_PERSIST = 8;
+/// Allow the runtime to provide additional safety properties.
+const map_flags MAP_FLAG_INDIRECT = 16;
 
 /// Map an object with a given ID and flags.
 extern struct map_result twz_rt_map_object(rt_objid id, map_flags flags);
