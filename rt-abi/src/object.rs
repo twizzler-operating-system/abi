@@ -169,7 +169,7 @@ impl From<MapError> for crate::bindings::map_error {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
+#[allow(dead_code)]
 impl ObjectHandle {
     fn refs(&self) -> *const AtomicU64 {
         self.0.runtime_info.cast()
