@@ -78,12 +78,27 @@ typedef uint32_t fd_flags;
 /// This file descriptor is a terminal.
 const fd_flags FD_IS_TERMINAL = 1;
 
-/// Information about a file descriptor.
-struct fd_info {
-  /// Flags for the descriptor.
-  fd_flags flags;
+/// Kinds of underlying fd objects
+enum fd_kind {
+  /// Regular file
+  FdKind_Regular,
+  /// Directory
+  FdKind_Directory,
+  /// Symbolic link
+  FdKind_SymLink,
 };
 
+/// Information about a file descriptor.
+struct fd_info {
+  /// Underlying root objid.
+  rt_objid id;
+  /// Length of underlying object, or 0 if undefined.
+  uint64_t len;
+  /// Flags for the descriptor.
+  fd_flags flags;
+  /// Underlying fd kind
+  enum fd_kind kind;
+};
 /// Get information about a descriptor. If this returns true, the fd was valid
 /// and the data pointed to by info is filled with fd_info data.
 extern bool twz_rt_fd_get_info(descriptor fd, struct fd_info *info);
@@ -107,6 +122,16 @@ const fd_cmd_err FD_CMD_SUCCESS = 0;
 /// Perform a command on the descriptor. The arguments arg and ret are interpreted according to
 /// the command specified.
 extern fd_cmd_err twz_rt_fd_cmd(descriptor fd, fd_cmd cmd, void *arg, void *ret);
+
+#define NAME_MAX 256
+struct name_entry {
+  struct fd_info info;
+  uint8_t name[NAME_MAX];
+};
+
+/// Enumerate sub-names in an fd (e.g. directory entries). The buf and len arguments form a &mut [name_entry] slice, and the off argument specifies how many names to skip for this read. The return value is the number of entries read, or
+/// 0 if at end of list.
+extern ssize_t twz_rt_fd_enumerate_names(descriptor fd, struct name_entry *buf, size_t len, size_t off);
 
 #ifdef __cplusplus
 }

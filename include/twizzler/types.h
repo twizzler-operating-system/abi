@@ -2,6 +2,8 @@
 #include<stddef.h>
 #include<stdint.h>
 
+typedef int64_t ssize_t;
+
 #ifdef __cplusplus
 extern "C" {
 #endif

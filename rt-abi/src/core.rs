@@ -51,9 +51,13 @@ pub fn twz_rt_post_main_hook() {
 
 /// Called by security context code on compartment entry
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_cross_compartment_entry() {
+pub fn twz_rt_cross_compartment_entry() -> Result<(), ()> {
     unsafe {
-        crate::bindings::twz_rt_cross_compartment_entry();
+        if crate::bindings::twz_rt_cross_compartment_entry() {
+            Ok(())
+        } else {
+            Err(())
+        }
     }
 }
 

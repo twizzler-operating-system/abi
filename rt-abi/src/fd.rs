@@ -67,17 +67,70 @@ pub struct FdFlags : crate::bindings::fd_flags {
 }
 }
 
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd, Default)]
+#[repr(u32)]
+/// Possible Fd Kinds
+pub enum FdKind {
+    #[default]
+    Regular = crate::bindings::fd_kind_FdKind_Regular,
+    Directory = crate::bindings::fd_kind_FdKind_Directory,
+    SymLink = crate::bindings::fd_kind_FdKind_SymLink,
+    Other = u32::MAX,
+}
+
+impl From<u32> for FdKind {
+    fn from(value: u32) -> Self {
+        match value {
+            crate::bindings::fd_kind_FdKind_Regular => Self::Regular,
+            crate::bindings::fd_kind_FdKind_Directory => Self::Directory,
+            crate::bindings::fd_kind_FdKind_SymLink => Self::SymLink,
+            _ => Self::Other,
+        }
+    }
+}
+
+impl Into<u32> for FdKind {
+    fn into(self) -> u32 {
+        match self {
+            Self::Regular => crate::bindings::fd_kind_FdKind_Regular,
+            Self::Directory => crate::bindings::fd_kind_FdKind_Directory,
+            Self::SymLink => crate::bindings::fd_kind_FdKind_SymLink,
+            Self::Other => u32::MAX,
+        }
+    }
+}
+
 /// Information about an open file descriptor.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct FdInfo {
     /// Flags for this descriptor
     pub flags: FdFlags,
+    /// Length of underlying object
+    pub size: u64,
+    /// Kind of file
+    pub kind: FdKind,
+    /// Object ID
+    pub id: twizzler_types::ObjID,
 }
 
 impl From<crate::bindings::fd_info> for FdInfo {
     fn from(value: crate::bindings::fd_info) -> Self {
         Self {
             flags: FdFlags::from_bits_truncate(value.flags),
+            size: value.len,
+            kind: FdKind::from(value.kind),
+            id: value.id,
+        }
+    }
+}
+
+impl From<FdInfo> for crate::bindings::fd_info {
+    fn from(value: FdInfo) -> Self {
+        Self {
+            flags: value.flags.bits(),
+            len: value.size,
+            kind: value.kind.into(),
+            id: value.id,
         }
     }
 }
@@ -91,6 +144,43 @@ pub fn twz_rt_fd_get_info(fd: RawFd) -> Option<FdInfo> {
         }
     }
     None
+}
+
+pub use crate::bindings::name_entry as NameEntry;
+
+impl Default for NameEntry {
+    fn default() -> Self {
+        Self {
+            name: [0; crate::bindings::NAME_MAX as usize],
+            info: FdInfo::default().into(),
+        }
+    }
+}
+
+impl NameEntry {
+    pub fn new(iname: &[u8], info: crate::bindings::fd_info) -> Self {
+        let nl = iname.len().min(crate::bindings::NAME_MAX as usize);
+        let mut name = [0; crate::bindings::NAME_MAX as usize];
+        name[0..nl].copy_from_slice(&iname[0..nl]);
+        Self { name, info }
+    }
+}
+
+/// Enumerate sub-names for an fd (e.g. directory entries). Returns Some(n) on success, None if no
+/// names can be enumerated. Return of Some(n) indicates number of items read into the buffer, 0 if
+/// end of name list. Offset argument specifies number of entries to skip.
+pub fn twz_rt_fd_enumerate_names(
+    fd: RawFd,
+    entries: &mut [NameEntry],
+    off: usize,
+) -> Option<usize> {
+    let res = unsafe {
+        crate::bindings::twz_rt_fd_enumerate_names(fd, entries.as_mut_ptr(), entries.len(), off)
+    };
+    match res {
+        -1 => None,
+        _ => Some(res as usize),
+    }
 }
 
 /// Open a file descriptor by name, as a C-string.

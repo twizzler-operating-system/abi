@@ -181,8 +181,23 @@ impl ObjectHandle {
     }
 
     /// Get a pointer to the metadata structure.
-    pub fn meta(&self) -> *mut u8 {
+    pub fn meta(&self) -> *mut MetaInfo {
         self.0.meta.cast()
+    }
+
+    /// Get a slice of metadata extensions
+    pub fn meta_exts(&self) -> &[MetaExt] {
+        unsafe {
+            core::slice::from_raw_parts(
+                self.0.meta.cast::<u8>().add(size_of::<MetaInfo>()).cast(),
+                (*self.meta()).extcount as usize,
+            )
+        }
+    }
+
+    /// Find the first metadata extension matching the given tag
+    pub fn find_meta_ext(&self, tag: MetaExtTag) -> Option<&MetaExt> {
+        self.meta_exts().iter().find(|e| e.tag == tag)
     }
 
     /// Get a pointer to the runtime info.
@@ -416,3 +431,45 @@ pub fn twz_rt_map_two_objects(
         Ok((ObjectHandle(res1.handle), ObjectHandle(res2.handle)))
     }
 }
+
+/// Flags for objects.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq, Hash, Default)]
+#[repr(transparent)]
+pub struct MetaFlags(pub u32);
+
+/// A nonce for avoiding object ID collision.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq, Hash, Default)]
+#[repr(transparent)]
+pub struct Nonce(pub u128);
+
+/// The core metadata that all objects share.
+#[repr(C)]
+pub struct MetaInfo {
+    /// The ID nonce.
+    pub nonce: Nonce,
+    /// The object's public key ID.
+    pub kuid: ObjID,
+    /// The object flags.
+    pub flags: MetaFlags,
+    /// The number of FOT entries.
+    pub fotcount: u16,
+    /// The number of meta extensions.
+    pub extcount: u16,
+}
+
+/// A tag for a meta extension entry.
+#[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq, Hash)]
+#[repr(transparent)]
+pub struct MetaExtTag(pub u64);
+
+/// A meta extension entry.
+#[repr(C)]
+pub struct MetaExt {
+    /// The tag.
+    pub tag: MetaExtTag,
+    /// A tag-specific value.
+    pub value: u64,
+}
+
+pub const MEXT_EMPTY: MetaExtTag = MetaExtTag(0);
+pub const MEXT_SIZED: MetaExtTag = MetaExtTag(1);

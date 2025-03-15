@@ -91,7 +91,7 @@ _Noreturn void twz_rt_exit(exit_code code);
 _Noreturn void twz_rt_abort(void);
 
 /// Signal the runtime to prep for entry from another compartment
-void twz_rt_cross_compartment_entry(void);
+_Bool twz_rt_cross_compartment_entry(void);
 
 /// Set the handler for an upcall from kernel
 void twz_rt_set_upcall_handler(void (*handler)(void *frame, const void *data));
