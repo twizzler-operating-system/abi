@@ -68,6 +68,14 @@ struct open_result {
 /// Open a file.
 extern struct open_result twz_rt_fd_open(struct open_info info);
 
+enum open_anon_kind {
+  AnonKind_Pipe,
+  AnonKind_Socket,
+};
+
+/// Open a non-named file.
+extern struct open_result twz_rt_fd_open_anon(enum open_anon_kind kind, uint32_t flags);
+
 /// Close a file descriptor. If the file descriptor is invalid
 /// or already closed, this function does nothing.
 extern void twz_rt_fd_close(descriptor fd);
@@ -98,6 +106,10 @@ struct fd_info {
   fd_flags flags;
   /// Underlying fd kind
   enum fd_kind kind;
+  struct duration created;
+  struct duration accessed;
+  struct duration modified;
+  uint32_t unix_mode;
 };
 /// Get information about a descriptor. If this returns true, the fd was valid
 /// and the data pointed to by info is filled with fd_info data.
@@ -110,8 +122,8 @@ typedef uint32_t fd_cmd;
 const fd_cmd FD_CMD_DUP = 0;
 /// Sync the underlying storage of the file descriptor.
 const fd_cmd FD_CMD_SYNC = 1;
-/// Delete the underlying object.
-const fd_cmd FD_CMD_DELETE = 2;
+/// Truncate the underlying storage of the file descriptor. The arg argument points to a u64 length.
+const fd_cmd FD_CMD_TRUNCATE = 2;
 
 /// Errors for twz_rt_fd_cmd.
 typedef uint32_t fd_cmd_err;
@@ -132,6 +144,18 @@ struct name_entry {
 /// Enumerate sub-names in an fd (e.g. directory entries). The buf and len arguments form a &mut [name_entry] slice, and the off argument specifies how many names to skip for this read. The return value is the number of entries read, or
 /// 0 if at end of list.
 extern ssize_t twz_rt_fd_enumerate_names(descriptor fd, struct name_entry *buf, size_t len, size_t off);
+
+/// Remove a name in the namespace.
+extern enum open_error twz_rt_fd_remove(const char *name, size_t name_len);
+
+/// Create a new namespace.
+extern enum open_error twz_rt_fd_mkns(const char *name, size_t name_len);
+
+/// Create a new symlink.
+extern enum open_error twz_rt_fd_symlink(const char *name, size_t name_len, const char *target, size_t target_len);
+
+/// Read symlink.
+extern enum open_error twz_rt_fd_readlink(const char *name, size_t name_len, char *buf, size_t buf_len, uint64_t *out_buf_len);
 
 #ifdef __cplusplus
 }
