@@ -45,6 +45,17 @@ impl TryFrom<crate::bindings::open_error> for OpenError {
     }
 }
 
+impl From<OpenError> for crate::bindings::open_error {
+    fn from(value: OpenError) -> crate::bindings::open_error {
+        match value {
+            OpenError::Other => crate::bindings::open_error_OpenError_Other,
+            OpenError::LookupFail => crate::bindings::open_error_OpenError_LookupFail,
+            OpenError::PermissionDenied => crate::bindings::open_error_OpenError_PermissionDenied,
+            OpenError::InvalidArgument => crate::bindings::open_error_OpenError_InvalidArgument,
+        }
+    }
+}
+
 impl From<Result<RawFd, OpenError>> for crate::bindings::open_result {
     fn from(value: Result<RawFd, OpenError>) -> Self {
         match value {
