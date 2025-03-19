@@ -68,6 +68,15 @@ struct io_vec {
 extern struct io_result twz_rt_fd_preadv(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
 /// Do vectored IO write.
 extern struct io_result twz_rt_fd_pwritev(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
+
+typedef uint32_t wait_flags;
+
+const wait_flags WAIT_READ = 1;
+const wait_flags WAIT_WRITE = 2;
+
+extern struct io_result twz_rt_fd_wait(descriptor fd, wait_flags flags, uint64_t **wait_point, uint64_t *wait_val);
+
 #ifdef __cplusplus
 }
 #endif
+
