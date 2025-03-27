@@ -138,6 +138,8 @@ extern fd_cmd_err twz_rt_fd_cmd(descriptor fd, fd_cmd cmd, void *arg, void *ret)
 #define NAME_MAX 256
 struct name_entry {
   struct fd_info info;
+  uint32_t name_len;
+  uint32_t linkname_len;
   uint8_t name[NAME_MAX];
 };
 
