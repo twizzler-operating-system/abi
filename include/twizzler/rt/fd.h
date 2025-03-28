@@ -42,6 +42,8 @@ const uint32_t OPEN_FLAG_WRITE = 2;
 const uint32_t OPEN_FLAG_TRUNCATE = 4;
 /// Always use the end of the file as the position.
 const uint32_t OPEN_FLAG_TAIL = 8;
+/// If the file is a symlink, open the link instead of the target.
+const uint32_t OPEN_FLAG_SYMLINK = 0x10;
 
 /// Possible open error conditions.
 enum open_error {
