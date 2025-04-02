@@ -61,36 +61,18 @@ struct spawn_args {
   size_t arg;
 };
 
-/// Possible spawn errors
-enum spawn_error {
-  Spawn_Success,
-  Spawn_Other,
-  Spawn_InvalidArgument,
-  Spawn_ObjectNotFound,
-  Spawn_PermissionDenied,
-  Spawn_KernelError,
-};
-
 /// Spawn result.
 struct spawn_result {
   /// Thread id, if err is set to Success.
   thread_id id;
-  enum spawn_error err;
+  twz_error err;
 };
 
 /// Sawn a thread. On success, that thread starts executing concurrently with this function's return.
 extern struct spawn_result twz_rt_spawn_thread(struct spawn_args args);
 
-/// Possible results of join.
-enum join_result {
-  Join_Success,
-  Join_Other,
-  Join_ThreadNotFound,
-  Join_Timeout,
-};
-
 /// Wait for a thread to exit, optionally timing out.
-extern enum join_result twz_rt_join_thread(thread_id id, struct option_duration timeout);
+extern twz_error twz_rt_join_thread(thread_id id, struct option_duration timeout);
 
 #ifdef __cplusplus
 }

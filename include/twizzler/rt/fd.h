@@ -45,26 +45,12 @@ const uint32_t OPEN_FLAG_TAIL = 8;
 /// If the file is a symlink, open the link instead of the target.
 const uint32_t OPEN_FLAG_SYMLINK = 0x10;
 
-/// Possible open error conditions.
-enum open_error {
-  /// Open success.
-  OpenError_Success,
-  /// Other error.
-  OpenError_Other,
-  /// Failed to lookup provided file name.
-  OpenError_LookupFail,
-  /// Permission denied.
-  OpenError_PermissionDenied,
-  /// Argument was invalid.
-  OpenError_InvalidArgument,
-};
-
 /// Result of open call.
 struct open_result {
   /// If error is Success, this contains a valid descriptor.
   descriptor fd;
   /// Error code, or success.
-  enum open_error error;
+  twz_error err;
 };
 
 /// Open a file.
@@ -101,7 +87,7 @@ enum fd_kind {
 /// Information about a file descriptor.
 struct fd_info {
   /// Underlying root objid.
-  rt_objid id;
+  objid id;
   /// Length of underlying object, or 0 if undefined.
   uint64_t len;
   /// Flags for the descriptor.
@@ -127,15 +113,9 @@ const fd_cmd FD_CMD_SYNC = 1;
 /// Truncate the underlying storage of the file descriptor. The arg argument points to a u64 length.
 const fd_cmd FD_CMD_TRUNCATE = 2;
 
-/// Errors for twz_rt_fd_cmd.
-typedef uint32_t fd_cmd_err;
-
-/// Success value for twz_rt_fd_cmd.
-const fd_cmd_err FD_CMD_SUCCESS = 0;
-
 /// Perform a command on the descriptor. The arguments arg and ret are interpreted according to
 /// the command specified.
-extern fd_cmd_err twz_rt_fd_cmd(descriptor fd, fd_cmd cmd, void *arg, void *ret);
+extern twz_error twz_rt_fd_cmd(descriptor fd, fd_cmd cmd, void *arg, void *ret);
 
 #define NAME_MAX 256
 struct name_entry {
@@ -147,19 +127,19 @@ struct name_entry {
 
 /// Enumerate sub-names in an fd (e.g. directory entries). The buf and len arguments form a &mut [name_entry] slice, and the off argument specifies how many names to skip for this read. The return value is the number of entries read, or
 /// 0 if at end of list.
-extern ssize_t twz_rt_fd_enumerate_names(descriptor fd, struct name_entry *buf, size_t len, size_t off);
+extern struct io_result twz_rt_fd_enumerate_names(descriptor fd, struct name_entry *buf, size_t len, size_t off);
 
 /// Remove a name in the namespace.
-extern enum open_error twz_rt_fd_remove(const char *name, size_t name_len);
+extern twz_error twz_rt_fd_remove(const char *name, size_t name_len);
 
 /// Create a new namespace.
-extern enum open_error twz_rt_fd_mkns(const char *name, size_t name_len);
+extern twz_error twz_rt_fd_mkns(const char *name, size_t name_len);
 
 /// Create a new symlink.
-extern enum open_error twz_rt_fd_symlink(const char *name, size_t name_len, const char *target, size_t target_len);
+extern twz_error twz_rt_fd_symlink(const char *name, size_t name_len, const char *target, size_t target_len);
 
 /// Read symlink.
-extern enum open_error twz_rt_fd_readlink(const char *name, size_t name_len, char *buf, size_t buf_len, uint64_t *out_buf_len);
+extern twz_error twz_rt_fd_readlink(const char *name, size_t name_len, char *buf, size_t buf_len, uint64_t *out_buf_len);
 
 #ifdef __cplusplus
 }

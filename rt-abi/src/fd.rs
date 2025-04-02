@@ -3,73 +3,7 @@
 use core::time::Duration;
 
 pub use crate::bindings::descriptor as RawFd;
-
-#[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
-#[repr(u32)]
-/// Possible Open error states.
-pub enum OpenError {
-    /// Unclassified errror.
-    Other = crate::bindings::open_error_OpenError_Other,
-    /// Lookup failed.
-    LookupFail = crate::bindings::open_error_OpenError_LookupFail,
-    /// Permission denied.
-    PermissionDenied = crate::bindings::open_error_OpenError_PermissionDenied,
-    /// An argument was invalid.
-    InvalidArgument = crate::bindings::open_error_OpenError_InvalidArgument,
-}
-
-impl core::error::Error for OpenError {}
-
-impl core::fmt::Display for OpenError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            OpenError::Other => write!(f, "unknown error"),
-            OpenError::LookupFail => write!(f, "lookup fail"),
-            OpenError::PermissionDenied => write!(f, "permission denied"),
-            OpenError::InvalidArgument => write!(f, "invalid argument"),
-        }
-    }
-}
-
-impl TryFrom<crate::bindings::open_error> for OpenError {
-    type Error = ();
-    fn try_from(value: crate::bindings::open_error) -> Result<OpenError, ()> {
-        Ok(match value {
-            crate::bindings::open_error_OpenError_Other => OpenError::Other,
-            crate::bindings::open_error_OpenError_LookupFail => OpenError::LookupFail,
-            crate::bindings::open_error_OpenError_PermissionDenied => OpenError::PermissionDenied,
-            crate::bindings::open_error_OpenError_InvalidArgument => OpenError::InvalidArgument,
-            n if n != crate::bindings::open_error_OpenError_Success => OpenError::Other,
-            _ => return Err(()),
-        })
-    }
-}
-
-impl From<OpenError> for crate::bindings::open_error {
-    fn from(value: OpenError) -> crate::bindings::open_error {
-        match value {
-            OpenError::Other => crate::bindings::open_error_OpenError_Other,
-            OpenError::LookupFail => crate::bindings::open_error_OpenError_LookupFail,
-            OpenError::PermissionDenied => crate::bindings::open_error_OpenError_PermissionDenied,
-            OpenError::InvalidArgument => crate::bindings::open_error_OpenError_InvalidArgument,
-        }
-    }
-}
-
-impl From<Result<RawFd, OpenError>> for crate::bindings::open_result {
-    fn from(value: Result<RawFd, OpenError>) -> Self {
-        match value {
-            Ok(fd) => Self {
-                error: crate::bindings::open_error_OpenError_Success,
-                fd,
-            },
-            Err(e) => Self {
-                error: e as crate::bindings::open_error,
-                fd: 0,
-            },
-        }
-    }
-}
+use crate::Result;
 
 bitflags::bitflags! {
     /// Flags for file descriptors.
@@ -165,7 +99,7 @@ impl From<FdInfo> for crate::bindings::fd_info {
 }
 
 /// Get information about an open file descriptor. If the fd is invalid or closed, returns None.
-pub fn twz_rt_fd_get_info(fd: RawFd) -> Option<FdInfo> {
+pub fn twz_rt_fd_get_info(fd: RawFd) -> Result<FdInfo> {
     let mut info = core::mem::MaybeUninit::uninit();
     unsafe {
         if crate::bindings::twz_rt_fd_get_info(fd, info.as_mut_ptr()) {
@@ -231,7 +165,7 @@ pub fn twz_rt_fd_enumerate_names(
     fd: RawFd,
     entries: &mut [NameEntry],
     off: usize,
-) -> Option<usize> {
+) -> Result<usize> {
     let res = unsafe {
         crate::bindings::twz_rt_fd_enumerate_names(fd, entries.as_mut_ptr(), entries.len(), off)
     };
@@ -246,7 +180,7 @@ pub fn twz_rt_fd_copen(
     name: &core::ffi::CStr,
     create: crate::bindings::create_options,
     flags: u32,
-) -> Result<RawFd, OpenError> {
+) -> Result<RawFd> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
         len: name.count_bytes(),
@@ -267,7 +201,7 @@ pub fn twz_rt_fd_open(
     name: &str,
     create: crate::bindings::create_options,
     flags: u32,
-) -> Result<RawFd, OpenError> {
+) -> Result<RawFd> {
     let info = crate::bindings::open_info {
         name: name.as_ptr().cast(),
         len: name.len(),
@@ -284,7 +218,7 @@ pub fn twz_rt_fd_open(
 }
 
 /// Remove a name
-pub fn twz_rt_fd_remove(name: &str) -> Result<(), OpenError> {
+pub fn twz_rt_fd_remove(name: &str) -> Result<()> {
     unsafe {
         let result = crate::bindings::twz_rt_fd_remove(name.as_ptr().cast(), name.len());
         if let Ok(err) = result.try_into() {
@@ -295,7 +229,7 @@ pub fn twz_rt_fd_remove(name: &str) -> Result<(), OpenError> {
 }
 
 /// Make a new namespace
-pub fn twz_rt_fd_mkns(name: &str) -> Result<(), OpenError> {
+pub fn twz_rt_fd_mkns(name: &str) -> Result<()> {
     unsafe {
         let result = crate::bindings::twz_rt_fd_mkns(name.as_ptr().cast(), name.len());
         if let Ok(err) = result.try_into() {
@@ -306,7 +240,7 @@ pub fn twz_rt_fd_mkns(name: &str) -> Result<(), OpenError> {
 }
 
 /// Make a new symlink
-pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<(), OpenError> {
+pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
     unsafe {
         let result = crate::bindings::twz_rt_fd_symlink(
             name.as_ptr().cast(),
@@ -321,7 +255,7 @@ pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<(), OpenError> {
     }
 }
 
-pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize, OpenError> {
+pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
     let mut len: u64 = 0;
     unsafe {
         let result = crate::bindings::twz_rt_fd_readlink(
@@ -348,7 +282,7 @@ pub enum OpenAnonKind {
 impl TryFrom<u32> for OpenAnonKind {
     type Error = ();
 
-    fn try_from(val: u32) -> Result<OpenAnonKind, Self::Error> {
+    fn try_from(val: u32) -> core::result::Result<OpenAnonKind, Self::Error> {
         match val {
             crate::bindings::open_anon_kind_AnonKind_Pipe => Ok(Self::Pipe),
             crate::bindings::open_anon_kind_AnonKind_Socket => Ok(Self::Socket),
@@ -367,7 +301,7 @@ impl From<OpenAnonKind> for u32 {
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_anon(kind: OpenAnonKind, flags: u32) -> Result<RawFd, OpenError> {
+pub fn twz_rt_fd_open_anon(kind: OpenAnonKind, flags: u32) -> Result<RawFd> {
     unsafe {
         let result = crate::bindings::twz_rt_fd_open_anon(kind.into(), flags);
         if let Ok(err) = result.error.try_into() {
@@ -378,7 +312,7 @@ pub fn twz_rt_fd_open_anon(kind: OpenAnonKind, flags: u32) -> Result<RawFd, Open
 }
 
 /// Duplicate a file descriptor.
-pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd, OpenError> {
+pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
     let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
     unsafe {
         if crate::bindings::twz_rt_fd_cmd(
@@ -407,7 +341,7 @@ pub fn twz_rt_fd_sync(fd: RawFd) {
 }
 
 /// Truncate a file descriptor.
-pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<(), ()> {
+pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
     unsafe {
         if crate::bindings::twz_rt_fd_cmd(
             fd,

@@ -37,7 +37,7 @@ const map_flags MAP_FLAG_PERSIST = 8;
 const map_flags MAP_FLAG_INDIRECT = 16;
 
 /// Map an object with a given ID and flags.
-extern struct map_result twz_rt_map_object(rt_objid id, map_flags flags);
+extern struct map_result twz_rt_map_object(objid id, map_flags flags);
 /// Release an object handle. After calling this, the handle may not be used.
 extern void twz_rt_release_handle(struct object_handle *handle);
 
@@ -61,7 +61,7 @@ extern void *twz_rt_resolve_fot_local(void *start, uint64_t idx, size_t valid_le
 extern int64_t twz_rt_insert_fot(struct object_handle *handle, void *entry);
 
 // Not intended for public use.
-extern void __twz_rt_map_two_objects(rt_objid id_1, map_flags flags_1, rt_objid id_2, map_flags flags_2, struct map_result *res_1, struct map_result *res_2);
+extern void __twz_rt_map_two_objects(objid id_1, map_flags flags_1, objid id_2, map_flags flags_2, struct map_result *res_1, struct map_result *res_2);
 #ifdef __cplusplus
 }
 #endif

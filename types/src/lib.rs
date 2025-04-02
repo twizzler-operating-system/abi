@@ -1,6 +1,6 @@
 #![no_std]
 
-pub type ObjID = bindings::rt_objid;
+pub type ObjID = bindings::objid;
 
 #[allow(
     non_camel_case_types,

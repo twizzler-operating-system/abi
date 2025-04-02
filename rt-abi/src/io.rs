@@ -3,39 +3,12 @@
 #![allow(unused_variables)]
 use crate::fd::RawFd;
 
-/// Possible error states for IO
-#[repr(u32)]
-pub enum IoError {
-    /// Unclassified error.
-    Other = crate::bindings::io_error_IoError_Other,
-    /// Operation would block.
-    WouldBlock = crate::bindings::io_error_IoError_WouldBlock,
-    /// Failure during seek.
-    SeekError = crate::bindings::io_error_IoError_SeekError,
-    /// Invalid file descriptor.
-    InvalidDesc = crate::bindings::io_error_IoError_InvalidDesc,
-}
-
 bitflags::bitflags! {
     /// Possible flags for IO operations.
     #[derive(Copy, Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
     pub struct IoFlags : crate::bindings::io_flags {
         /// This operation should have non-blocking semantics, regardless of fd status.
         const NONBLOCKING = crate::bindings::IO_NONBLOCKING;
-    }
-}
-
-impl TryFrom<crate::bindings::io_error> for IoError {
-    type Error = ();
-    fn try_from(value: crate::bindings::io_error) -> Result<IoError, ()> {
-        Ok(match value {
-            crate::bindings::io_error_IoError_Other => IoError::Other,
-            crate::bindings::io_error_IoError_WouldBlock => IoError::WouldBlock,
-            crate::bindings::io_error_IoError_SeekError => IoError::SeekError,
-            crate::bindings::io_error_IoError_InvalidDesc => IoError::InvalidDesc,
-            n if n != crate::bindings::io_error_IoError_Success => IoError::Other,
-            _ => return Err(()),
-        })
     }
 }
 

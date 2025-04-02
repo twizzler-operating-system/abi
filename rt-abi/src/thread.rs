@@ -3,6 +3,8 @@
 #![allow(unused_variables)]
 use core::time::Duration;
 
+use crate::Result;
+
 /// Runtime-internal thread ID.
 pub type ThreadId = crate::bindings::thread_id;
 /// Index of a TLS variable.
@@ -15,98 +17,6 @@ pub type FutexWord = crate::bindings::futex_word;
 pub type AtomicFutexWord = core::sync::atomic::AtomicU32;
 /// Arguments to spawn.
 pub type ThreadSpawnArgs = crate::bindings::spawn_args;
-
-#[repr(u32)]
-#[derive(Debug, Copy, Clone)]
-/// Possible spawn error types.
-pub enum SpawnError {
-    /// Unclassified error.
-    Other = crate::bindings::spawn_error_Spawn_Other,
-    /// Argument was invalid.
-    InvalidArgument = crate::bindings::spawn_error_Spawn_InvalidArgument,
-    /// A specified object was not found.
-    ObjectNotFound = crate::bindings::spawn_error_Spawn_ObjectNotFound,
-    /// Permission was denied.
-    PermissionDenied = crate::bindings::spawn_error_Spawn_PermissionDenied,
-    /// The kernel encountered an error when spawning the thread.
-    KernelError = crate::bindings::spawn_error_Spawn_KernelError,
-}
-
-impl core::fmt::Display for SpawnError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            SpawnError::Other => write!(f, "unclassified error"),
-            SpawnError::KernelError => write!(f, "kernel error"),
-            SpawnError::ObjectNotFound => write!(f, "no such object"),
-            SpawnError::PermissionDenied => write!(f, "permission denied"),
-            SpawnError::InvalidArgument => write!(f, "invalid argument"),
-        }
-    }
-}
-
-impl core::error::Error for SpawnError {}
-
-impl From<SpawnError> for crate::bindings::spawn_error {
-    fn from(value: SpawnError) -> Self {
-        value as Self
-    }
-}
-
-impl TryFrom<crate::bindings::spawn_error> for SpawnError {
-    type Error = ();
-    fn try_from(value: crate::bindings::spawn_error) -> Result<Self, ()> {
-        Ok(match value {
-            crate::bindings::spawn_error_Spawn_Other => SpawnError::Other,
-            crate::bindings::spawn_error_Spawn_InvalidArgument => SpawnError::InvalidArgument,
-            crate::bindings::spawn_error_Spawn_ObjectNotFound => SpawnError::ObjectNotFound,
-            crate::bindings::spawn_error_Spawn_PermissionDenied => SpawnError::PermissionDenied,
-            crate::bindings::spawn_error_Spawn_KernelError => SpawnError::KernelError,
-            crate::bindings::spawn_error_Spawn_Success => return Err(()),
-            _ => SpawnError::Other,
-        })
-    }
-}
-
-impl From<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
-    fn from(value: Result<ThreadId, SpawnError>) -> Self {
-        match value {
-            Ok(id) => Self {
-                id,
-                err: crate::bindings::spawn_error_Spawn_Success,
-            },
-            Err(e) => Self {
-                id: 0,
-                err: e.into(),
-            },
-        }
-    }
-}
-
-impl Into<Result<ThreadId, SpawnError>> for crate::bindings::spawn_result {
-    fn into(self) -> Result<ThreadId, SpawnError> {
-        if let Ok(e) = self.err.try_into() {
-            return Err(e);
-        }
-        Ok(self.id)
-    }
-}
-
-#[repr(u32)]
-/// Possible join error states.
-pub enum JoinError {
-    /// Unclassified error.
-    Other = crate::bindings::join_result_Join_Other,
-    /// The specified thread was not found.
-    ThreadNotFound = crate::bindings::join_result_Join_ThreadNotFound,
-    /// The operation timed out.
-    Timeout = crate::bindings::join_result_Join_Timeout,
-}
-
-impl From<JoinError> for crate::bindings::join_result {
-    fn from(value: JoinError) -> Self {
-        value as Self
-    }
-}
 
 /// If the futex word pointed to by `word` is equal to expected, put the thread to sleep. This
 /// operation is atomic -- the thread is enqueued on the sleep queue _first_, before the equality
@@ -156,12 +66,12 @@ pub fn twz_rt_tls_get_addr(index: &TlsIndex) -> *mut u8 {
 
 /// Spawn a thread. On success, that thread starts executing concurrently with the return of this
 /// function.
-pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId, SpawnError> {
+pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId> {
     unsafe { crate::bindings::twz_rt_spawn_thread(args).into() }
 }
 
 /// Wait for a thread to exit, optionally timing out.
-pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<(), JoinError> {
+pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<()> {
     unsafe {
         match crate::bindings::twz_rt_join_thread(id, timeout.into()) {
             crate::bindings::join_result_Join_Success => Ok(()),

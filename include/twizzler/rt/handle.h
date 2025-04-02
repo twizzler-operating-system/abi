@@ -12,7 +12,7 @@ typedef uint32_t map_flags;
 /// Object handle
 struct object_handle {
   /// ID for this handle
-  rt_objid id;
+  objid id;
   /// Pointer to per-runtime info. The first 64-bits of this data must be an atomic u64 value used for reference counting.
   void *runtime_info;
   /// Pointer to start of object data.

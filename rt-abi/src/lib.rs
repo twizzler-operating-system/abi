@@ -31,3 +31,7 @@ pub mod time;
     improper_ctypes
 )]
 pub mod bindings;
+
+pub mod error;
+
+pub type Result<T> = core::result::Result<T, TwzError>;

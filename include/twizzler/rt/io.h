@@ -7,27 +7,8 @@
 extern "C" {
 #endif
 
-/// Possible IO errors
-enum io_error {
-  /// Success
-  IoError_Success,
-  /// Other error
-  IoError_Other,
-  /// Error during seek
-  IoError_SeekError,
-  /// Invalid descriptor
-  IoError_InvalidDesc,
-  /// Operation would block, but nonblocking behavior was specified.
-  IoError_WouldBlock,
-};
 
-/// Result of IO operations
-struct io_result {
-  /// Error value, or success.
-  enum io_error error;
-  /// Returned value, only valid if error is set to Success.
-  size_t value;
-};
+typedef struct result_sizet io_result;
 
 /// Type of whence values for seek.
 typedef uint32_t whence;

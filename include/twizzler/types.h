@@ -9,7 +9,7 @@ extern "C" {
 #endif
 
 /// Object ID
-typedef __uint128_t rt_objid;
+typedef __uint128_t objid;
 
 /// Duration, containing seconds and nanoseconds.
 struct duration {

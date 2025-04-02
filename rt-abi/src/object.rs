@@ -7,7 +7,7 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use crate::bindings::LEN_MUL;
+use crate::{bindings::LEN_MUL, Result};
 
 /// An object ID.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
@@ -116,56 +116,6 @@ bitflags::bitflags! {
         const PERSIST = crate::bindings::MAP_FLAG_PERSIST;
         /// Use runtime support for read stability.
         const INDIRECT = crate::bindings::MAP_FLAG_INDIRECT;
-    }
-}
-
-#[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord, Hash)]
-#[repr(u32)]
-/// Possible errors for mapping objects.
-pub enum MapError {
-    /// Unclassified error.
-    Other = crate::bindings::map_error_MapError_Other,
-    /// Out of resources (e.g. mapping slots)
-    OutOfResources = crate::bindings::map_error_MapError_OutOfResources,
-    /// Specified object was not found
-    NoSuchObject = crate::bindings::map_error_MapError_NoSuchObject,
-    /// Permission denied
-    PermissionDenied = crate::bindings::map_error_MapError_PermissionDenied,
-    /// An argument to map was invalid
-    InvalidArgument = crate::bindings::map_error_MapError_InvalidArgument,
-}
-
-impl core::fmt::Display for MapError {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        match self {
-            MapError::Other => write!(f, "unclassified error"),
-            MapError::OutOfResources => write!(f, "out of resources"),
-            MapError::NoSuchObject => write!(f, "no such object"),
-            MapError::PermissionDenied => write!(f, "permission denied"),
-            MapError::InvalidArgument => write!(f, "invalid argument"),
-        }
-    }
-}
-
-impl core::error::Error for MapError {}
-
-impl TryFrom<crate::bindings::map_error> for MapError {
-    type Error = ();
-    fn try_from(value: crate::bindings::map_error) -> Result<Self, Self::Error> {
-        match value {
-            crate::bindings::map_error_MapError_Success => Err(()),
-            crate::bindings::map_error_MapError_OutOfResources => Ok(Self::OutOfResources),
-            crate::bindings::map_error_MapError_NoSuchObject => Ok(Self::NoSuchObject),
-            crate::bindings::map_error_MapError_PermissionDenied => Ok(Self::PermissionDenied),
-            crate::bindings::map_error_MapError_InvalidArgument => Ok(Self::InvalidArgument),
-            _ => Ok(Self::Other),
-        }
-    }
-}
-
-impl From<MapError> for crate::bindings::map_error {
-    fn from(value: MapError) -> Self {
-        value as Self
     }
 }
 
@@ -324,7 +274,7 @@ impl From<Result<ObjectHandle, MapError>> for crate::bindings::map_result {
 
 /// Map an object given by ID `id` with the given flags.
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, MapError> {
+pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle> {
     unsafe {
         let res = crate::bindings::twz_rt_map_object(id.raw(), flags.bits());
         if let Ok(map_error) = res.error.try_into() {
@@ -336,7 +286,7 @@ pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle, Map
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_get_object_handle(ptr: *const u8) -> Option<ObjectHandle> {
+pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
     let res = unsafe { crate::bindings::twz_rt_get_object_handle((ptr as *mut u8).cast()) };
     if res.id == 0 {
         return None;
@@ -345,11 +295,7 @@ pub fn twz_rt_get_object_handle(ptr: *const u8) -> Option<ObjectHandle> {
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_resolve_fot(
-    this: &ObjectHandle,
-    idx: u64,
-    valid_len: usize,
-) -> Result<ObjectHandle, MapError> {
+pub fn twz_rt_resolve_fot(this: &ObjectHandle, idx: u64, valid_len: usize) -> Result<ObjectHandle> {
     unsafe {
         let res =
             crate::bindings::twz_rt_resolve_fot(&this.0 as *const _ as *mut _, idx, valid_len);
@@ -362,7 +308,7 @@ pub fn twz_rt_resolve_fot(
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Option<u64> {
+pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u64> {
     unsafe {
         let res = crate::bindings::twz_rt_insert_fot(
             &this.0 as *const _ as *mut _,
@@ -393,7 +339,7 @@ pub fn twz_rt_map_two_objects(
     flags1: MapFlags,
     id2: ObjID,
     flags2: MapFlags,
-) -> Result<(ObjectHandle, ObjectHandle), MapError> {
+) -> Result<(ObjectHandle, ObjectHandle)> {
     unsafe {
         let mut res1 = MaybeUninit::uninit();
         let mut res2 = MaybeUninit::uninit();
