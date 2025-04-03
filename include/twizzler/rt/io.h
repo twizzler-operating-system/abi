@@ -7,9 +7,6 @@
 extern "C" {
 #endif
 
-
-typedef struct result_sizet io_result;
-
 /// Type of whence values for seek.
 typedef uint32_t whence;
 

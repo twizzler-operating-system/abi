@@ -72,12 +72,5 @@ pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId> {
 
 /// Wait for a thread to exit, optionally timing out.
 pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<()> {
-    unsafe {
-        match crate::bindings::twz_rt_join_thread(id, timeout.into()) {
-            crate::bindings::join_result_Join_Success => Ok(()),
-            crate::bindings::join_result_Join_Timeout => Err(JoinError::Timeout),
-            crate::bindings::join_result_Join_ThreadNotFound => Err(JoinError::ThreadNotFound),
-            _ => Err(JoinError::Other),
-        }
-    }
+    unsafe { crate::bindings::twz_rt_join_thread(id, timeout.into()).into() }
 }

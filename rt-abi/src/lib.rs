@@ -34,4 +34,4 @@ pub mod bindings;
 
 pub mod error;
 
-pub type Result<T> = core::result::Result<T, TwzError>;
+pub type Result<T> = ::core::result::Result<T, error::TwzError>;

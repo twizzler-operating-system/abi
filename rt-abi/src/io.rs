@@ -1,7 +1,7 @@
 //! Runtime interface for IO-like operations.
 
 #![allow(unused_variables)]
-use crate::fd::RawFd;
+use crate::{fd::RawFd, Result};
 
 bitflags::bitflags! {
     /// Possible flags for IO operations.
@@ -26,25 +26,27 @@ fn optoff(off: Option<u64>) -> crate::bindings::optional_offset {
     }
 }
 
-impl Into<Result<usize, IoError>> for crate::bindings::io_result {
-    fn into(self) -> Result<usize, IoError> {
-        if let Ok(e) = self.error.try_into() {
-            return Err(e);
+impl Into<Result<usize>> for crate::bindings::io_result {
+    fn into(self) -> Result<usize> {
+        let raw = TwzRawError::new(self.err);
+        if raw.is_success() {
+            Ok(self.val)
+        } else {
+            Err(raw.error())
         }
-        Ok(self.value)
     }
 }
 
-impl From<Result<usize, IoError>> for crate::bindings::io_result {
-    fn from(value: Result<usize, IoError>) -> Self {
+impl From<Result<usize>> for crate::bindings::io_result {
+    fn from(value: Result<usize>) -> Self {
         match value {
             Ok(v) => Self {
-                value: v,
-                error: crate::bindings::io_error_IoError_Success,
+                val: v,
+                err: crate::bindings::SUCCESS,
             },
             Err(e) => Self {
-                value: 0,
-                error: e as u32,
+                val: 0,
+                err: e.raw(),
             },
         }
     }
@@ -59,7 +61,7 @@ pub fn twz_rt_fd_pread(
     offset: Option<u64>,
     buf: &mut [u8],
     flags: IoFlags,
-) -> Result<usize, IoError> {
+) -> Result<usize> {
     unsafe {
         crate::bindings::twz_rt_fd_pread(
             fd,
@@ -81,7 +83,7 @@ pub fn twz_rt_fd_pwrite(
     offset: Option<u64>,
     buf: &[u8],
     flags: IoFlags,
-) -> Result<usize, IoError> {
+) -> Result<usize> {
     unsafe {
         crate::bindings::twz_rt_fd_pwrite(
             fd,
@@ -95,7 +97,7 @@ pub fn twz_rt_fd_pwrite(
 }
 
 /// Seek a file descriptor, changing the internal position.
-pub fn twz_rt_fd_seek(fd: RawFd, seek: SeekFrom) -> Result<usize, IoError> {
+pub fn twz_rt_fd_seek(fd: RawFd, seek: SeekFrom) -> Result<usize> {
     let (whence, off) = match seek {
         SeekFrom::Start(s) => (crate::bindings::WHENCE_START, s as i64),
         SeekFrom::End(s) => (crate::bindings::WHENCE_END, s),
@@ -116,7 +118,7 @@ pub fn twz_rt_fd_preadv(
     offset: Option<u64>,
     ios: &[IoSlice],
     flags: IoFlags,
-) -> Result<usize, IoError> {
+) -> Result<usize> {
     unsafe {
         crate::bindings::twz_rt_fd_pwritev(
             fd,
@@ -138,7 +140,7 @@ pub fn twz_rt_fd_pwritev(
     offset: Option<u64>,
     ios: &[IoSlice],
     flags: IoFlags,
-) -> Result<usize, IoError> {
+) -> Result<usize> {
     unsafe {
         crate::bindings::twz_rt_fd_pwritev(
             fd,

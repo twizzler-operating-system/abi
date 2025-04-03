@@ -7,7 +7,7 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use crate::{bindings::LEN_MUL, Result};
+use crate::{bindings::LEN_MUL, error::TwzError, Result};
 
 /// An object ID.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
@@ -257,17 +257,28 @@ impl Default for crate::bindings::object_handle {
 }
 
 #[cfg(not(feature = "kernel"))]
-impl From<Result<ObjectHandle, MapError>> for crate::bindings::map_result {
-    fn from(value: Result<ObjectHandle, MapError>) -> Self {
+impl From<Result<ObjectHandle>> for crate::bindings::map_result {
+    fn from(value: Result<ObjectHandle>) -> Self {
         match value {
             Ok(handle) => Self {
                 handle: handle.into_raw(),
-                error: crate::bindings::map_error_MapError_Success,
+                error: crate::bindings::SUCCESS,
             },
             Err(e) => Self {
                 handle: crate::bindings::object_handle::default(),
-                error: e.into(),
+                error: e.raw(),
             },
+        }
+    }
+}
+
+#[cfg(not(feature = "kernel"))]
+impl From<crate::bindings::map_result> for Result<ObjectHandle> {
+    fn from(value: crate::bindings::map_result) -> Self {
+        if value.error.is_success() {
+            Ok(ObjectHandle(value.handle))
+        } else {
+            Err(value.error.into())
         }
     }
 }
@@ -275,35 +286,24 @@ impl From<Result<ObjectHandle, MapError>> for crate::bindings::map_result {
 /// Map an object given by ID `id` with the given flags.
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle> {
-    unsafe {
-        let res = crate::bindings::twz_rt_map_object(id.raw(), flags.bits());
-        if let Ok(map_error) = res.error.try_into() {
-            return Err(map_error);
-        }
-
-        Ok(ObjectHandle(res.handle))
-    }
+    unsafe { crate::bindings::twz_rt_map_object(id.raw(), flags.bits()).into() }
 }
 
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
+    use crate::error::ObjectError;
+
     let res = unsafe { crate::bindings::twz_rt_get_object_handle((ptr as *mut u8).cast()) };
     if res.id == 0 {
-        return None;
+        return Err(TwzError::Object(ObjectError::NotMapped));
     }
-    Some(ObjectHandle(res))
+    Ok(ObjectHandle(res))
 }
 
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_resolve_fot(this: &ObjectHandle, idx: u64, valid_len: usize) -> Result<ObjectHandle> {
     unsafe {
-        let res =
-            crate::bindings::twz_rt_resolve_fot(&this.0 as *const _ as *mut _, idx, valid_len);
-        if let Ok(map_error) = res.error.try_into() {
-            return Err(map_error);
-        }
-
-        Ok(ObjectHandle(res.handle))
+        crate::bindings::twz_rt_resolve_fot(&this.0 as *const _ as *mut _, idx, valid_len).into()
     }
 }
 
@@ -314,7 +314,7 @@ pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u64> {
             &this.0 as *const _ as *mut _,
             (entry as *mut u8).cast(),
         );
-        res.try_into().ok()
+        res.into()
     }
 }
 
@@ -355,26 +355,10 @@ pub fn twz_rt_map_two_objects(
         let res1 = res1.assume_init();
         let res2 = res2.assume_init();
 
-        let me1 = res1.error.try_into();
-        let me2 = res2.error.try_into();
+        let res1: Result<ObjectHandle> = res1.into();
+        let res2: Result<ObjectHandle> = res2.into();
 
-        if let Ok(map_error) = me1 {
-            if me2.is_err() {
-                // This means res2 DOES have an object handle.
-                let _handle = ObjectHandle(res2.handle);
-            }
-            return Err(map_error);
-        }
-
-        if let Ok(map_error) = me2 {
-            if me1.is_err() {
-                // This means res1 DOES have an object handle.
-                let _handle = ObjectHandle(res1.handle);
-            }
-            return Err(map_error);
-        }
-
-        Ok((ObjectHandle(res1.handle), ObjectHandle(res2.handle)))
+        Ok((res1?, res2?))
     }
 }
 

@@ -8,21 +8,11 @@
 extern "C" {
 #endif
 
-/// Possible mapping errors
-enum map_error {
-  MapError_Success,
-  MapError_Other,
-  MapError_OutOfResources,
-  MapError_NoSuchObject,
-  MapError_PermissionDenied,
-  MapError_InvalidArgument,
-};
-
 /// Result map_object call
 struct map_result {
   /// Handle, if error is set to Success.
   struct object_handle handle;
-  enum map_error error;
+  twz_error error;
 };
 
 /// Map with READ permission.
@@ -58,7 +48,7 @@ extern void *twz_rt_resolve_fot_local(void *start, uint64_t idx, size_t valid_le
 
 /// Insert the given entry into the FOT, or return the existing entry if it already exists in this object's FOT.
 /// Returns -1 on failure.
-extern int64_t twz_rt_insert_fot(struct object_handle *handle, void *entry);
+extern struct u32_result twz_rt_insert_fot(struct object_handle *handle, void *entry);
 
 // Not intended for public use.
 extern void __twz_rt_map_two_objects(objid id_1, map_flags flags_1, objid id_2, map_flags flags_2, struct map_result *res_1, struct map_result *res_2);

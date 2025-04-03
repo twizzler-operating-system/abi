@@ -5,25 +5,25 @@
 #include <stddef.h>
 
 /// Error or value
-struct result_u32 {
+struct u32_result {
   twz_error err;
   uint32_t val;
 };
 
 /// Error or value
-struct result_u64 {
+struct u64_result {
   twz_error err;
   uint64_t val;
 };
 
 /// Error or value
-struct result_objid {
+struct objid_result {
   twz_error err;
   objid val;
 };
 
 /// Error or value
-struct result_ptr {
+struct ptr_result {
   twz_error err;
   void *val;
 };

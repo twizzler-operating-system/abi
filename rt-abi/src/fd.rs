@@ -103,10 +103,10 @@ pub fn twz_rt_fd_get_info(fd: RawFd) -> Result<FdInfo> {
     let mut info = core::mem::MaybeUninit::uninit();
     unsafe {
         if crate::bindings::twz_rt_fd_get_info(fd, info.as_mut_ptr()) {
-            return Some(info.assume_init().into());
+            return Ok(info.assume_init().into());
         }
     }
-    None
+    Err(TwzError::Argument(ArgumentError::BadHandle))
 }
 
 pub use crate::bindings::name_entry as NameEntry;
@@ -166,12 +166,9 @@ pub fn twz_rt_fd_enumerate_names(
     entries: &mut [NameEntry],
     off: usize,
 ) -> Result<usize> {
-    let res = unsafe {
+    unsafe {
         crate::bindings::twz_rt_fd_enumerate_names(fd, entries.as_mut_ptr(), entries.len(), off)
-    };
-    match res {
-        -1 => None,
-        _ => Some(res as usize),
+            .into()
     }
 }
 
@@ -187,13 +184,7 @@ pub fn twz_rt_fd_copen(
         create,
         flags,
     };
-    unsafe {
-        let result = crate::bindings::twz_rt_fd_open(info);
-        if let Ok(err) = result.error.try_into() {
-            return Err(err);
-        }
-        Ok(result.fd)
-    }
+    unsafe { crate::bindings::twz_rt_fd_open(info).into() }
 }
 
 /// Open a file descriptor by name, as a Rust-string.
@@ -208,67 +199,43 @@ pub fn twz_rt_fd_open(
         create,
         flags,
     };
-    unsafe {
-        let result = crate::bindings::twz_rt_fd_open(info);
-        if let Ok(err) = result.error.try_into() {
-            return Err(err);
-        }
-        Ok(result.fd)
-    }
+    unsafe { crate::bindings::twz_rt_fd_open(info).into() }
 }
 
 /// Remove a name
 pub fn twz_rt_fd_remove(name: &str) -> Result<()> {
-    unsafe {
-        let result = crate::bindings::twz_rt_fd_remove(name.as_ptr().cast(), name.len());
-        if let Ok(err) = result.try_into() {
-            return Err(err);
-        }
-        Ok(())
-    }
+    unsafe { crate::bindings::twz_rt_fd_remove(name.as_ptr().cast(), name.len()).into() }
 }
 
 /// Make a new namespace
 pub fn twz_rt_fd_mkns(name: &str) -> Result<()> {
-    unsafe {
-        let result = crate::bindings::twz_rt_fd_mkns(name.as_ptr().cast(), name.len());
-        if let Ok(err) = result.try_into() {
-            return Err(err);
-        }
-        Ok(())
-    }
+    unsafe { crate::bindings::twz_rt_fd_mkns(name.as_ptr().cast(), name.len()).into() }
 }
 
 /// Make a new symlink
 pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
     unsafe {
-        let result = crate::bindings::twz_rt_fd_symlink(
+        crate::bindings::twz_rt_fd_symlink(
             name.as_ptr().cast(),
             name.len(),
             target.as_ptr().cast(),
             target.len(),
-        );
-        if let Ok(err) = result.try_into() {
-            return Err(err);
-        }
-        Ok(())
+        )
+        .into()
     }
 }
 
 pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
     let mut len: u64 = 0;
     unsafe {
-        let result = crate::bindings::twz_rt_fd_readlink(
+        crate::bindings::twz_rt_fd_readlink(
             name.as_ptr().cast(),
             name.len(),
             buf.as_mut_ptr().cast(),
             buf.len(),
             &mut len,
-        );
-        if let Ok(err) = result.try_into() {
-            return Err(err);
-        }
-        Ok(len as usize)
+        )
+        .into()
     }
 }
 
@@ -302,30 +269,25 @@ impl From<OpenAnonKind> for u32 {
 
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_open_anon(kind: OpenAnonKind, flags: u32) -> Result<RawFd> {
-    unsafe {
-        let result = crate::bindings::twz_rt_fd_open_anon(kind.into(), flags);
-        if let Ok(err) = result.error.try_into() {
-            return Err(err);
-        }
-        Ok(result.fd)
-    }
+    unsafe { crate::bindings::twz_rt_fd_open_anon(kind.into(), flags).into() }
 }
 
 /// Duplicate a file descriptor.
 pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
     let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
     unsafe {
-        if crate::bindings::twz_rt_fd_cmd(
+        let e = crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_DUP,
             core::ptr::null_mut(),
             new_fd.as_mut_ptr().cast(),
-        ) == crate::bindings::FD_CMD_SUCCESS
-        {
-            return Ok(new_fd.assume_init());
+        );
+        if e == crate::bindings::SUCCESS {
+            Ok(new_fd.assume_init())
+        } else {
+            Err(TwzErrorRaw::new(e).error())
         }
     }
-    Err(OpenError::Other)
 }
 
 /// Sync a file descriptor.
@@ -343,14 +305,14 @@ pub fn twz_rt_fd_sync(fd: RawFd) {
 /// Truncate a file descriptor.
 pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
     unsafe {
-        if crate::bindings::twz_rt_fd_cmd(
+        let e = crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_TRUNCATE,
             (&mut len as *mut u64).cast(),
             core::ptr::null_mut(),
-        ) != crate::bindings::FD_CMD_SUCCESS
-        {
-            return Err(());
+        );
+        if e != crate::bindings::SUCCESS {
+            return Err(TwzErrorRaw::new(e).error());
         }
     }
     Ok(())
