@@ -7,7 +7,11 @@ use core::{
     sync::atomic::{AtomicU64, Ordering},
 };
 
-use crate::{bindings::LEN_MUL, error::TwzError, Result};
+use crate::{
+    bindings::LEN_MUL,
+    error::{RawTwzError, TwzError},
+    Result,
+};
 
 /// An object ID.
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Default)]
@@ -262,7 +266,7 @@ impl From<Result<ObjectHandle>> for crate::bindings::map_result {
         match value {
             Ok(handle) => Self {
                 handle: handle.into_raw(),
-                error: crate::bindings::SUCCESS,
+                error: RawTwzError::success().raw(),
             },
             Err(e) => Self {
                 handle: crate::bindings::object_handle::default(),
@@ -275,10 +279,11 @@ impl From<Result<ObjectHandle>> for crate::bindings::map_result {
 #[cfg(not(feature = "kernel"))]
 impl From<crate::bindings::map_result> for Result<ObjectHandle> {
     fn from(value: crate::bindings::map_result) -> Self {
-        if value.error.is_success() {
+        let raw = RawTwzError::new(value.error);
+        if raw.is_success() {
             Ok(ObjectHandle(value.handle))
         } else {
-            Err(value.error.into())
+            Err(raw.error())
         }
     }
 }
@@ -307,8 +312,34 @@ pub fn twz_rt_resolve_fot(this: &ObjectHandle, idx: u64, valid_len: usize) -> Re
     }
 }
 
+impl From<Result<u32>> for crate::bindings::u32_result {
+    fn from(value: Result<u32>) -> Self {
+        match value {
+            Ok(val) => Self {
+                val,
+                err: RawTwzError::success().raw(),
+            },
+            Err(e) => Self {
+                val: 0,
+                err: e.raw(),
+            },
+        }
+    }
+}
+
+impl From<crate::bindings::u32_result> for Result<u32> {
+    fn from(value: crate::bindings::u32_result) -> Self {
+        let raw = RawTwzError::new(value.err);
+        if raw.is_success() {
+            Ok(value.val)
+        } else {
+            Err(raw.error())
+        }
+    }
+}
+
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u64> {
+pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u32> {
     unsafe {
         let res = crate::bindings::twz_rt_insert_fot(
             &this.0 as *const _ as *mut _,

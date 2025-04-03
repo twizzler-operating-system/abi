@@ -11,10 +11,10 @@ typedef uint64_t twz_error;
 typedef uint16_t twz_error_code;
 typedef uint16_t twz_error_category;
 
-#define ERROR_CODE_SHIFT 0
-#define ERROR_CODE_MASK 0x0000FFFF
-#define ERROR_CATEGORY_SHIFT 32
-#define ERROR_CATEGORY_MASK 0x0000FFFF00000000
+const twz_error ERROR_CODE_SHIFT = 0;
+const twz_error ERROR_CODE_MASK = 0x0000FFFF;
+const twz_error ERROR_CATEGORY_MASK = 0x0000FFFF00000000;
+const twz_error ERROR_CATEGORY_SHIFT = 0;
 
 const twz_error_code SUCCESS = 0;
 

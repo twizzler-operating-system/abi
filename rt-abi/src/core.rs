@@ -2,6 +2,8 @@
 
 /// Type for exit code.
 pub type ExitCode = crate::bindings::exit_code;
+#[cfg(not(feature = "kernel"))]
+use crate::error::{GenericError, TwzError};
 
 /// Exit with the provided error code. If the main thread for a program
 /// exits, the remaining threads will exit as well.
@@ -51,12 +53,12 @@ pub fn twz_rt_post_main_hook() {
 
 /// Called by security context code on compartment entry
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_cross_compartment_entry() -> Result<(), ()> {
+pub fn twz_rt_cross_compartment_entry() -> Result<(), TwzError> {
     unsafe {
         if crate::bindings::twz_rt_cross_compartment_entry() {
             Ok(())
         } else {
-            Err(())
+            Err(GenericError::AccessDenied.into())
         }
     }
 }

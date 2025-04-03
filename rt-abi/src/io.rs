@@ -1,7 +1,7 @@
 //! Runtime interface for IO-like operations.
 
 #![allow(unused_variables)]
-use crate::{fd::RawFd, Result};
+use crate::{error::RawTwzError, fd::RawFd, Result};
 
 bitflags::bitflags! {
     /// Possible flags for IO operations.
@@ -28,7 +28,7 @@ fn optoff(off: Option<u64>) -> crate::bindings::optional_offset {
 
 impl Into<Result<usize>> for crate::bindings::io_result {
     fn into(self) -> Result<usize> {
-        let raw = TwzRawError::new(self.err);
+        let raw = RawTwzError::new(self.err);
         if raw.is_success() {
             Ok(self.val)
         } else {
@@ -42,7 +42,7 @@ impl From<Result<usize>> for crate::bindings::io_result {
         match value {
             Ok(v) => Self {
                 val: v,
-                err: crate::bindings::SUCCESS,
+                err: RawTwzError::success().raw(),
             },
             Err(e) => Self {
                 val: 0,

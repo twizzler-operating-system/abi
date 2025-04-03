@@ -3,7 +3,10 @@
 use core::time::Duration;
 
 pub use crate::bindings::descriptor as RawFd;
-use crate::Result;
+use crate::{
+    error::{ArgumentError, RawTwzError, TwzError},
+    Result,
+};
 
 bitflags::bitflags! {
     /// Flags for file descriptors.
@@ -94,6 +97,32 @@ impl From<FdInfo> for crate::bindings::fd_info {
             accessed: value.accessed.into(),
             modified: value.modified.into(),
             unix_mode: value.unix_mode,
+        }
+    }
+}
+
+impl From<Result<RawFd>> for crate::bindings::open_result {
+    fn from(value: Result<RawFd>) -> Self {
+        match value {
+            Ok(fd) => Self {
+                fd,
+                err: RawTwzError::success().raw(),
+            },
+            Err(e) => Self {
+                fd: 0,
+                err: e.raw(),
+            },
+        }
+    }
+}
+
+impl From<crate::bindings::open_result> for Result<RawFd> {
+    fn from(value: crate::bindings::open_result) -> Self {
+        let raw = RawTwzError::new(value.err);
+        if raw.is_success() {
+            Ok(value.fd)
+        } else {
+            Err(raw.error())
         }
     }
 }
@@ -204,39 +233,52 @@ pub fn twz_rt_fd_open(
 
 /// Remove a name
 pub fn twz_rt_fd_remove(name: &str) -> Result<()> {
-    unsafe { crate::bindings::twz_rt_fd_remove(name.as_ptr().cast(), name.len()).into() }
+    unsafe {
+        RawTwzError::new(crate::bindings::twz_rt_fd_remove(
+            name.as_ptr().cast(),
+            name.len(),
+        ))
+        .result()
+    }
 }
 
 /// Make a new namespace
 pub fn twz_rt_fd_mkns(name: &str) -> Result<()> {
-    unsafe { crate::bindings::twz_rt_fd_mkns(name.as_ptr().cast(), name.len()).into() }
+    unsafe {
+        RawTwzError::new(crate::bindings::twz_rt_fd_mkns(
+            name.as_ptr().cast(),
+            name.len(),
+        ))
+        .result()
+    }
 }
 
 /// Make a new symlink
 pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
     unsafe {
-        crate::bindings::twz_rt_fd_symlink(
+        RawTwzError::new(crate::bindings::twz_rt_fd_symlink(
             name.as_ptr().cast(),
             name.len(),
             target.as_ptr().cast(),
             target.len(),
-        )
-        .into()
+        ))
+        .result()
     }
 }
 
 pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
     let mut len: u64 = 0;
     unsafe {
-        crate::bindings::twz_rt_fd_readlink(
+        RawTwzError::new(crate::bindings::twz_rt_fd_readlink(
             name.as_ptr().cast(),
             name.len(),
             buf.as_mut_ptr().cast(),
             buf.len(),
             &mut len,
-        )
-        .into()
+        ))
+        .result()?;
     }
+    Ok(len as usize)
 }
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
@@ -282,10 +324,11 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
             core::ptr::null_mut(),
             new_fd.as_mut_ptr().cast(),
         );
-        if e == crate::bindings::SUCCESS {
+        let raw = RawTwzError::new(e);
+        if raw.is_success() {
             Ok(new_fd.assume_init())
         } else {
-            Err(TwzErrorRaw::new(e).error())
+            Err(raw.error())
         }
     }
 }
@@ -311,8 +354,9 @@ pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
             (&mut len as *mut u64).cast(),
             core::ptr::null_mut(),
         );
-        if e != crate::bindings::SUCCESS {
-            return Err(TwzErrorRaw::new(e).error());
+        let raw = RawTwzError::new(e);
+        if !raw.is_success() {
+            return Err(raw.error());
         }
     }
     Ok(())

@@ -1,5 +1,10 @@
 #![no_std]
 #![feature(naked_functions)]
+#![feature(allocator_api)]
+
+#[cfg(all(feature = "std", not(feature = "kernel")))]
+#[macro_use]
+extern crate std;
 
 pub mod core;
 #[allow(unused_imports)]

@@ -3,7 +3,7 @@
 #![allow(unused_variables)]
 use core::time::Duration;
 
-use crate::Result;
+use crate::{error::RawTwzError, Result};
 
 /// Runtime-internal thread ID.
 pub type ThreadId = crate::bindings::thread_id;
@@ -17,6 +17,32 @@ pub type FutexWord = crate::bindings::futex_word;
 pub type AtomicFutexWord = core::sync::atomic::AtomicU32;
 /// Arguments to spawn.
 pub type ThreadSpawnArgs = crate::bindings::spawn_args;
+
+impl From<Result<ThreadId>> for crate::bindings::spawn_result {
+    fn from(value: Result<ThreadId>) -> Self {
+        match value {
+            Ok(id) => Self {
+                id,
+                err: RawTwzError::success().raw(),
+            },
+            Err(e) => Self {
+                id: 0,
+                err: e.raw(),
+            },
+        }
+    }
+}
+
+impl From<crate::bindings::spawn_result> for Result<ThreadId> {
+    fn from(value: crate::bindings::spawn_result) -> Self {
+        let raw = RawTwzError::new(value.err);
+        if raw.is_success() {
+            Ok(value.id)
+        } else {
+            Err(raw.error())
+        }
+    }
+}
 
 /// If the futex word pointed to by `word` is equal to expected, put the thread to sleep. This
 /// operation is atomic -- the thread is enqueued on the sleep queue _first_, before the equality
@@ -72,5 +98,5 @@ pub fn twz_rt_spawn_thread(args: ThreadSpawnArgs) -> Result<ThreadId> {
 
 /// Wait for a thread to exit, optionally timing out.
 pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<()> {
-    unsafe { crate::bindings::twz_rt_join_thread(id, timeout.into()).into() }
+    unsafe { RawTwzError::new(crate::bindings::twz_rt_join_thread(id, timeout.into())).result() }
 }

@@ -2,11 +2,14 @@ use core::fmt::Display;
 
 use crate::bindings::{self};
 
+#[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RawTwzError(bindings::twz_error);
+
+// TODO: From category, to/from errorkind, etc
 
 impl RawTwzError {
     pub fn category(&self) -> ErrorCategory {
-        let cat = (self.0 & bindings::ERROR_CATEGORY_MASK) >> bindings::ERROR_CATEGORY_MASK;
+        let cat = (self.0 & bindings::ERROR_CATEGORY_MASK) >> bindings::ERROR_CATEGORY_SHIFT;
         match cat as u16 {
             bindings::GENERIC_ERROR => ErrorCategory::Generic,
             bindings::ARGUMENT_ERROR => ErrorCategory::Argument,
@@ -19,7 +22,13 @@ impl RawTwzError {
     }
 
     pub fn code(&self) -> u16 {
-        (self.0 & bindings::ERROR_CODE_MASK) >> bindings::ERROR_CODE_MASK
+        ((self.0 & bindings::ERROR_CODE_MASK) >> bindings::ERROR_CODE_SHIFT) as u16
+    }
+
+    pub fn from_parts(cat: u16, code: u16) -> Self {
+        let cat = ((cat as u64) << bindings::ERROR_CATEGORY_SHIFT) & bindings::ERROR_CATEGORY_MASK;
+        let code = ((code as u64) << bindings::ERROR_CODE_SHIFT) & bindings::ERROR_CODE_MASK;
+        Self(cat | code)
     }
 
     pub fn error(&self) -> TwzError {
@@ -49,6 +58,14 @@ impl RawTwzError {
     pub fn success() -> Self {
         Self(bindings::SUCCESS as u64)
     }
+
+    pub fn result(&self) -> Result<(), TwzError> {
+        if self.is_success() {
+            Ok(())
+        } else {
+            Err(self.error())
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
@@ -58,6 +75,7 @@ pub enum TwzError {
     Argument(ArgumentError),
     Resource(ResourceError),
     Object(ObjectError),
+    Naming(NamingError),
     Io(IoError),
 }
 
@@ -65,11 +83,30 @@ impl TwzError {
     pub fn category(&self) -> ErrorCategory {
         match self {
             TwzError::Uncategorized(_) => ErrorCategory::Uncategorized,
-            TwzError::Generic(generic_error) => ErrorCategory::Generic,
-            TwzError::Argument(argument_error) => ErrorCategory::Argument,
-            TwzError::Resource(resource_error) => ErrorCategory::Resource,
-            TwzError::Object(object_error) => ErrorCategory::Object,
-            TwzError::Io(io_error) => ErrorCategory::Io,
+            TwzError::Generic(_) => ErrorCategory::Generic,
+            TwzError::Argument(_) => ErrorCategory::Argument,
+            TwzError::Resource(_) => ErrorCategory::Resource,
+            TwzError::Object(_) => ErrorCategory::Object,
+            TwzError::Io(_) => ErrorCategory::Io,
+            TwzError::Naming(_) => ErrorCategory::Naming,
+        }
+    }
+
+    pub fn raw(&self) -> bindings::twz_error {
+        let cat = self.category().raw();
+        let code = self.code();
+        RawTwzError::from_parts(cat, code).raw()
+    }
+
+    pub fn code(&self) -> u16 {
+        match self {
+            TwzError::Uncategorized(code) => *code,
+            TwzError::Generic(generic_error) => generic_error.code(),
+            TwzError::Argument(argument_error) => argument_error.code(),
+            TwzError::Resource(resource_error) => resource_error.code(),
+            TwzError::Object(object_error) => object_error.code(),
+            TwzError::Io(io_error) => io_error.code(),
+            TwzError::Naming(naming_error) => naming_error.code(),
         }
     }
 }
@@ -83,11 +120,18 @@ impl Display for TwzError {
             TwzError::Resource(resource_error) => write!(f, "resource error: {}", resource_error),
             TwzError::Object(object_error) => write!(f, "object error: {}", object_error),
             TwzError::Io(io_error) => write!(f, "I/O error: {}", io_error),
+            TwzError::Naming(naming_error) => write!(f, "naming error: {}", naming_error),
         }
     }
 }
 
 impl core::error::Error for TwzError {}
+
+impl Into<u64> for TwzError {
+    fn into(self) -> u64 {
+        self.raw()
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -109,7 +153,6 @@ impl Display for ErrorCategory {
             ErrorCategory::Argument => write!(f, "argument"),
             ErrorCategory::Resource => write!(f, "resource"),
             ErrorCategory::Naming => write!(f, "naming"),
-            ErrorCategory::Mapping => write!(f, "mapping"),
             ErrorCategory::Object => write!(f, "object"),
             ErrorCategory::Io => write!(f, "I/O"),
         }
@@ -117,6 +160,12 @@ impl Display for ErrorCategory {
 }
 
 impl core::error::Error for ErrorCategory {}
+
+impl ErrorCategory {
+    pub fn raw(&self) -> u16 {
+        *self as u16
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -140,6 +189,10 @@ impl GenericError {
             _ => TwzError::Uncategorized(code),
         }
     }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
 }
 
 impl Display for GenericError {
@@ -156,6 +209,12 @@ impl Display for GenericError {
 }
 
 impl core::error::Error for GenericError {}
+
+impl From<GenericError> for TwzError {
+    fn from(value: GenericError) -> Self {
+        Self::Generic(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -176,6 +235,10 @@ impl ArgumentError {
             _ => TwzError::Uncategorized(code),
         }
     }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
 }
 
 impl Display for ArgumentError {
@@ -190,6 +253,12 @@ impl Display for ArgumentError {
 }
 
 impl core::error::Error for ArgumentError {}
+
+impl From<ArgumentError> for TwzError {
+    fn from(value: ArgumentError) -> Self {
+        Self::Argument(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -210,6 +279,10 @@ impl ResourceError {
             _ => TwzError::Uncategorized(code),
         }
     }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
 }
 
 impl Display for ResourceError {
@@ -224,6 +297,12 @@ impl Display for ResourceError {
 }
 
 impl core::error::Error for ResourceError {}
+
+impl From<ResourceError> for TwzError {
+    fn from(value: ResourceError) -> Self {
+        Self::Resource(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -250,6 +329,10 @@ impl ObjectError {
             _ => TwzError::Uncategorized(code),
         }
     }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
 }
 
 impl Display for ObjectError {
@@ -267,6 +350,12 @@ impl Display for ObjectError {
 }
 
 impl core::error::Error for ObjectError {}
+
+impl From<ObjectError> for TwzError {
+    fn from(value: ObjectError) -> Self {
+        Self::Object(value)
+    }
+}
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
@@ -287,6 +376,10 @@ impl IoError {
             _ => TwzError::Uncategorized(code),
         }
     }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
 }
 
 impl Display for IoError {
@@ -301,3 +394,72 @@ impl Display for IoError {
 }
 
 impl core::error::Error for IoError {}
+
+impl From<IoError> for TwzError {
+    fn from(value: IoError) -> Self {
+        Self::Io(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u16)]
+pub enum NamingError {
+    NotFound = bindings::NOT_FOUND,
+    AlreadyExists = bindings::ALREADY_EXISTS,
+    WrongNameKind = bindings::WRONG_NAME_KIND,
+    AlreadyBound = bindings::ALREADY_BOUND,
+    LinkLoop = bindings::LINK_LOOP,
+    NotEmpty = bindings::NOT_EMPTY,
+}
+
+impl NamingError {
+    fn twz_error_from_code(code: u16) -> TwzError {
+        match code {
+            bindings::NOT_FOUND => TwzError::Naming(NamingError::NotFound),
+            bindings::ALREADY_EXISTS => TwzError::Naming(NamingError::AlreadyExists),
+            bindings::WRONG_NAME_KIND => TwzError::Naming(NamingError::WrongNameKind),
+            bindings::ALREADY_BOUND => TwzError::Naming(NamingError::AlreadyBound),
+            bindings::LINK_LOOP => TwzError::Naming(NamingError::LinkLoop),
+            bindings::NOT_EMPTY => TwzError::Naming(NamingError::NotEmpty),
+            _ => TwzError::Uncategorized(code),
+        }
+    }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
+}
+
+impl Display for NamingError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            NamingError::NotFound => write!(f, "not found"),
+            NamingError::AlreadyExists => write!(f, "already exists"),
+            NamingError::WrongNameKind => write!(f, "wrong name kind"),
+            NamingError::AlreadyBound => write!(f, "already bound"),
+            NamingError::LinkLoop => write!(f, "link loop"),
+            NamingError::NotEmpty => write!(f, "not empty"),
+        }
+    }
+}
+
+impl core::error::Error for NamingError {}
+
+impl From<NamingError> for TwzError {
+    fn from(value: NamingError) -> Self {
+        Self::Naming(value)
+    }
+}
+
+#[cfg(not(feature = "kernel"))]
+impl Into<std::io::ErrorKind> for TwzError {
+    fn into(self) -> std::io::ErrorKind {
+        todo!()
+    }
+}
+
+impl From<core::alloc::AllocError> for TwzError {
+    fn from(_value: core::alloc::AllocError) -> Self {
+        ResourceError::OutOfMemory.into()
+    }
+}
