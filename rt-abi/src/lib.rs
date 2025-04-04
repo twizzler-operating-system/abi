@@ -1,6 +1,7 @@
 #![no_std]
 #![feature(naked_functions)]
 #![feature(allocator_api)]
+#![feature(ip_from)]
 
 pub mod core;
 #[allow(unused_imports)]

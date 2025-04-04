@@ -80,6 +80,11 @@ pub enum TwzError {
 }
 
 impl TwzError {
+    pub const NOT_SUPPORTED: Self = Self::Generic(GenericError::NotSupported);
+    pub const TIMED_OUT: Self = Self::Generic(GenericError::TimedOut);
+    pub const WOULD_BLOCK: Self = Self::Generic(GenericError::WouldBlock);
+    pub const INVALID_ARGUMENT: Self = Self::Argument(ArgumentError::InvalidArgument);
+
     pub fn category(&self) -> ErrorCategory {
         match self {
             TwzError::Uncategorized(_) => ErrorCategory::Uncategorized,

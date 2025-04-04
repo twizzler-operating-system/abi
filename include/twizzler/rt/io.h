@@ -27,12 +27,42 @@ const whence WHENCE_CURRENT = 2;
 typedef int64_t optional_offset;
 const optional_offset FD_POS = -1;
 
+/// Context for I/O operations.
+struct io_ctx {
+  // Flags for this I/O operation.
+  io_flags flags;
+  // Optional offset. If set to FD_POS, will use the internal fd offset.
+  optional_offset offset;
+  // Optional timeout. If flags contains NONBLOCKING, this argument is ignored.
+  struct option_duration timeout;
+};
+
+enum endpoint_kind {
+  Endpoint_Unspecified,
+  Endpoint_Socket,
+};
+
+union endpoint_addrs {
+    struct socket_address socket_addr;
+};
+
+/// Endpoint addresses, for example, socket address.
+struct endpoint {
+  enum endpoint_kind kind;
+  union endpoint_addrs addr;
+};
+
 /// Read from a file. May read less than specified len.
-extern struct io_result twz_rt_fd_pread(descriptor fd, optional_offset offset, void *buf, size_t len, io_flags flags);
+extern struct io_result twz_rt_fd_pread(descriptor fd, void *buf, size_t len, struct io_ctx *ctx);
 /// Write to a file. May write less than specified len.
-extern struct io_result twz_rt_fd_pwrite(descriptor fd, optional_offset offset, const void *buf, size_t len, io_flags flags);
+extern struct io_result twz_rt_fd_pwrite(descriptor fd, const void *buf, size_t len, struct io_ctx *ctx);
 /// Seek to a specified point in the file.
 extern struct io_result twz_rt_fd_seek(descriptor fd, whence whence, int64_t offset);
+
+/// Read from a file. May read less than specified len. Fill *ep with information about the source of the I/O (e.g. socket address).
+extern struct io_result twz_rt_fd_pread_from(descriptor fd, void *buf, size_t len, struct io_ctx *ctx, struct endpoint *ep);
+/// Write to a file. May write less than specified len. Send to specified endpoint (e.g. socket address).
+extern struct io_result twz_rt_fd_pwrite_to(descriptor fd, const void *buf, size_t len, struct io_ctx *ctx, struct endpoint *ep);
 
 /// Io vec, a buffer and a len.
 struct io_vec {
@@ -43,16 +73,21 @@ struct io_vec {
 };
 
 /// Do vectored IO read.
-extern struct io_result twz_rt_fd_preadv(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
+extern struct io_result twz_rt_fd_preadv(descriptor fd, const struct io_vec *iovs, size_t nr_iovs, struct io_ctx *ctx);
 /// Do vectored IO write.
-extern struct io_result twz_rt_fd_pwritev(descriptor fd, optional_offset offset, const struct io_vec *iovs, size_t nr_iovs, io_flags flags);
+extern struct io_result twz_rt_fd_pwritev(descriptor fd, const struct io_vec *iovs, size_t nr_iovs, struct io_ctx *ctx);
 
-typedef uint32_t wait_flags;
+typedef uint32_t wait_kind;
+const wait_kind WAIT_READ = 1;
+const wait_kind WAIT_WRITE = 2;
 
-const wait_flags WAIT_READ = 1;
-const wait_flags WAIT_WRITE = 2;
+/// Get a word and value to wait on for determining if reads or writes are available.
+extern twz_error twz_rt_fd_waitpoint(descriptor fd, wait_kind ek, uint64_t **point, uint64_t val);
 
-extern struct io_result twz_rt_fd_wait(descriptor fd, wait_flags flags, uint64_t **wait_point, uint64_t *wait_val);
+/// Get a config value for register reg.
+extern twz_error twz_rt_fd_get_config(descriptor fd, uint32_t reg, void *val, size_t len);
+/// Set a config value for register reg. Setting a register may have side effects.
+extern twz_error twz_rt_fd_set_config(descriptor fd, uint32_t reg, void *val, size_t len);
 
 #ifdef __cplusplus
 }

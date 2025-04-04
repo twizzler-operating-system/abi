@@ -285,7 +285,8 @@ pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
 #[repr(u32)]
 pub enum OpenAnonKind {
     Pipe = crate::bindings::open_anon_kind_AnonKind_Pipe,
-    Socket = crate::bindings::open_anon_kind_AnonKind_Socket,
+    SocketConnect = crate::bindings::open_anon_kind_AnonKind_SocketConnect,
+    SocketBind = crate::bindings::open_anon_kind_AnonKind_SocketBind,
 }
 
 impl TryFrom<u32> for OpenAnonKind {
@@ -294,7 +295,8 @@ impl TryFrom<u32> for OpenAnonKind {
     fn try_from(val: u32) -> core::result::Result<OpenAnonKind, Self::Error> {
         match val {
             crate::bindings::open_anon_kind_AnonKind_Pipe => Ok(Self::Pipe),
-            crate::bindings::open_anon_kind_AnonKind_Socket => Ok(Self::Socket),
+            crate::bindings::open_anon_kind_AnonKind_SocketConnect => Ok(Self::SocketConnect),
+            crate::bindings::open_anon_kind_AnonKind_SocketBind => Ok(Self::SocketBind),
             _ => Err(()),
         }
     }
@@ -304,14 +306,157 @@ impl From<OpenAnonKind> for u32 {
     fn from(val: OpenAnonKind) -> u32 {
         match val {
             OpenAnonKind::Pipe => crate::bindings::open_anon_kind_AnonKind_Pipe,
-            OpenAnonKind::Socket => crate::bindings::open_anon_kind_AnonKind_Socket,
+            OpenAnonKind::SocketBind => crate::bindings::open_anon_kind_AnonKind_SocketBind,
+            OpenAnonKind::SocketConnect => crate::bindings::open_anon_kind_AnonKind_SocketConnect,
+        }
+    }
+}
+
+#[derive(Clone, Copy)]
+#[repr(transparent)]
+pub struct SocketAddress(pub(crate) crate::bindings::socket_address);
+
+impl SocketAddress {
+    fn new_v4(octets: [u8; 4], port: u16) -> Self {
+        Self(crate::bindings::socket_address {
+            kind: crate::bindings::addr_kind_AddrKind_Ipv4,
+            addr_octets: crate::bindings::socket_address_addrs { v4: octets },
+            port,
+            flowinfo: 0,
+            scope_id: 0,
+        })
+    }
+
+    fn new_v6(octets: [u8; 16], port: u16, flowinfo: u32, scope_id: u32) -> Self {
+        Self(crate::bindings::socket_address {
+            kind: crate::bindings::addr_kind_AddrKind_Ipv6,
+            addr_octets: crate::bindings::socket_address_addrs { v6: octets },
+            port,
+            flowinfo,
+            scope_id,
+        })
+    }
+
+    fn v4_octets(&self) -> [u8; 4] {
+        assert!(self.is_v4());
+        unsafe { self.0.addr_octets.v4 }
+    }
+
+    fn v6_octets(&self) -> [u8; 16] {
+        assert!(!self.is_v4());
+        unsafe { self.0.addr_octets.v6 }
+    }
+
+    fn is_v4(&self) -> bool {
+        self.0.kind == crate::bindings::addr_kind_AddrKind_Ipv4
+    }
+}
+
+impl From<SocketAddress> for core::net::IpAddr {
+    fn from(value: SocketAddress) -> Self {
+        if value.is_v4() {
+            Self::V4(core::net::Ipv4Addr::from_octets(value.v4_octets()))
+        } else {
+            Self::V6(core::net::Ipv6Addr::from_octets(value.v6_octets()))
+        }
+    }
+}
+
+impl From<SocketAddress> for core::net::SocketAddr {
+    fn from(value: SocketAddress) -> Self {
+        if value.is_v4() {
+            Self::V4(core::net::SocketAddrV4::new(
+                core::net::Ipv4Addr::from_octets(value.v4_octets()),
+                value.0.port,
+            ))
+        } else {
+            Self::V6(core::net::SocketAddrV6::new(
+                core::net::Ipv6Addr::from_octets(value.v6_octets()),
+                value.0.port,
+                value.0.flowinfo,
+                value.0.scope_id,
+            ))
+        }
+    }
+}
+
+impl From<core::net::Ipv4Addr> for SocketAddress {
+    fn from(value: core::net::Ipv4Addr) -> Self {
+        Self::new_v4(value.octets(), 0)
+    }
+}
+
+impl From<core::net::Ipv6Addr> for SocketAddress {
+    fn from(value: core::net::Ipv6Addr) -> Self {
+        Self::new_v6(value.octets(), 0, 0, 0)
+    }
+}
+
+impl From<core::net::SocketAddrV4> for SocketAddress {
+    fn from(value: core::net::SocketAddrV4) -> Self {
+        Self::new_v4(value.ip().octets(), value.port())
+    }
+}
+
+impl From<core::net::SocketAddrV6> for SocketAddress {
+    fn from(value: core::net::SocketAddrV6) -> Self {
+        Self::new_v6(
+            value.ip().octets(),
+            value.port(),
+            value.flowinfo(),
+            value.scope_id(),
+        )
+    }
+}
+
+impl From<core::net::SocketAddr> for SocketAddress {
+    fn from(value: core::net::SocketAddr) -> Self {
+        match value {
+            core::net::SocketAddr::V4(v4) => v4.into(),
+            core::net::SocketAddr::V6(v6) => v6.into(),
+        }
+    }
+}
+
+impl From<core::net::IpAddr> for SocketAddress {
+    fn from(value: core::net::IpAddr) -> Self {
+        match value {
+            core::net::IpAddr::V4(v4) => v4.into(),
+            core::net::IpAddr::V6(v6) => v6.into(),
         }
     }
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_anon(kind: OpenAnonKind, flags: u32) -> Result<RawFd> {
-    unsafe { crate::bindings::twz_rt_fd_open_anon(kind.into(), flags).into() }
+pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::SocketBind.into(),
+            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
+            core::mem::size_of::<crate::bindings::socket_address>(),
+        )
+        .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_open_socket_connect(mut addr: SocketAddress) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::SocketConnect.into(),
+            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
+            core::mem::size_of::<crate::bindings::socket_address>(),
+        )
+        .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_open_pipe() -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(OpenAnonKind::Pipe.into(), core::ptr::null_mut(), 0)
+            .into()
+    }
 }
 
 /// Duplicate a file descriptor.

@@ -58,11 +58,31 @@ extern struct open_result twz_rt_fd_open(struct open_info info);
 
 enum open_anon_kind {
   AnonKind_Pipe,
-  AnonKind_Socket,
+  AnonKind_SocketConnect,
+  AnonKind_SocketBind,
 };
 
-/// Open a non-named file.
-extern struct open_result twz_rt_fd_open_anon(enum open_anon_kind kind, uint32_t flags);
+enum addr_kind {
+  AddrKind_Ipv4,
+  AddrKind_Ipv6,
+};
+
+union socket_address_addrs {
+  uint8_t v4[4];
+  uint8_t v6[16];
+};
+
+struct socket_address {
+  enum addr_kind kind;
+  union socket_address_addrs addr_octets;
+  uint16_t port;
+  uint32_t scope_id;
+  uint32_t flowinfo;
+};
+
+/// Open a non-named file. The value pointed to by bind_info is dependent on the kind specified in the first
+/// argument. For pipe, bind_info is ignored. For Socket* kinds, bind_info points to a socket_address.
+extern struct open_result twz_rt_fd_open_anon(enum open_anon_kind kind, void *bind_info, size_t bind_info_len);
 
 /// Close a file descriptor. If the file descriptor is invalid
 /// or already closed, this function does nothing.
