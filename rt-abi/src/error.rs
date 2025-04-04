@@ -451,13 +451,6 @@ impl From<NamingError> for TwzError {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
-impl Into<std::io::ErrorKind> for TwzError {
-    fn into(self) -> std::io::ErrorKind {
-        todo!()
-    }
-}
-
 impl From<core::alloc::AllocError> for TwzError {
     fn from(_value: core::alloc::AllocError) -> Self {
         ResourceError::OutOfMemory.into()
