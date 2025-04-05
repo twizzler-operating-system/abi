@@ -428,10 +428,11 @@ impl From<core::net::IpAddr> for SocketAddress {
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress, flags: u32) -> Result<RawFd> {
     unsafe {
         crate::bindings::twz_rt_fd_open_anon(
             OpenAnonKind::SocketBind.into(),
+            flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
         )
@@ -440,10 +441,11 @@ pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress) -> Result<RawFd> {
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_socket_connect(mut addr: SocketAddress) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket_connect(mut addr: SocketAddress, flags: u32) -> Result<RawFd> {
     unsafe {
         crate::bindings::twz_rt_fd_open_anon(
             OpenAnonKind::SocketConnect.into(),
+            flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
         )
@@ -452,10 +454,15 @@ pub fn twz_rt_fd_open_socket_connect(mut addr: SocketAddress) -> Result<RawFd> {
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_pipe() -> Result<RawFd> {
+pub fn twz_rt_fd_open_pipe(flags: u32) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(OpenAnonKind::Pipe.into(), core::ptr::null_mut(), 0)
-            .into()
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::Pipe.into(),
+            flags,
+            core::ptr::null_mut(),
+            0,
+        )
+        .into()
     }
 }
 

@@ -82,7 +82,7 @@ struct socket_address {
 
 /// Open a non-named file. The value pointed to by bind_info is dependent on the kind specified in the first
 /// argument. For pipe, bind_info is ignored. For Socket* kinds, bind_info points to a socket_address.
-extern struct open_result twz_rt_fd_open_anon(enum open_anon_kind kind, void *bind_info, size_t bind_info_len);
+extern struct open_result twz_rt_fd_open_anon(enum open_anon_kind kind, uint32_t flags, void *bind_info, size_t bind_info_len);
 
 /// Close a file descriptor. If the file descriptor is invalid
 /// or already closed, this function does nothing.
