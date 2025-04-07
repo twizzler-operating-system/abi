@@ -32,7 +32,7 @@ rustc-dep-of-std = [
     "twizzler-types/rustc-dep-of-std",
 ]
 
+stderr = []
 kernel = []
 rt0 = []
-default = ["rt0", "std"]
-std = []
+default = ["rt0", "stderr"]

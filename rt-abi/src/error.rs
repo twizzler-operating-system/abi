@@ -461,3 +461,19 @@ impl From<core::alloc::AllocError> for TwzError {
         ResourceError::OutOfMemory.into()
     }
 }
+
+#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+extern crate std;
+#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+impl From<std::io::ErrorKind> for TwzError {
+    fn from(value: std::io::ErrorKind) -> Self {
+        todo!()
+    }
+}
+
+#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+impl From<std::io::Error> for TwzError {
+    fn from(value: std::io::Error) -> Self {
+        todo!()
+    }
+}
