@@ -175,12 +175,15 @@ impl ErrorCategory {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
 pub enum GenericError {
+    Other = bindings::OTHER,
     NotSupported = bindings::NOT_SUPPORTED,
     Internal = bindings::INTERNAL,
     WouldBlock = bindings::WOULD_BLOCK,
     TimedOut = bindings::TIMED_OUT,
     AccessDenied = bindings::ACCESS_DENIED,
     NoSuchOperation = bindings::NO_SUCH_OPERATION,
+    Interrupted = bindings::INTERRUPTED,
+    InProgress = bindings::IN_PROGRESS,
 }
 
 impl GenericError {
@@ -209,6 +212,9 @@ impl Display for GenericError {
             GenericError::TimedOut => write!(f, "timed out"),
             GenericError::AccessDenied => write!(f, "access denied"),
             GenericError::NoSuchOperation => write!(f, "no such operation"),
+            GenericError::Interrupted => write!(f, "interrupted"),
+            GenericError::InProgress => write!(f, "in-progress"),
+            GenericError::Other => write!(f, "other"),
         }
     }
 }
@@ -272,6 +278,11 @@ pub enum ResourceError {
     OutOfResources = bindings::OUT_OF_RESOURCES,
     OutOfNames = bindings::OUT_OF_NAMES,
     Unavailable = bindings::UNAVAILABLE,
+    Refused = bindings::REFUSED,
+    Busy = bindings::BUSY,
+    NotConnected = bindings::NOT_CONNECTED,
+    Unreachable = bindings::UNREACHABLE,
+    NonAtomic = bindings::NON_ATOMIC,
 }
 
 impl ResourceError {
@@ -297,6 +308,11 @@ impl Display for ResourceError {
             ResourceError::OutOfResources => write!(f, "out of resources"),
             ResourceError::OutOfNames => write!(f, "out of names"),
             ResourceError::Unavailable => write!(f, "unavailable"),
+            ResourceError::Refused => write!(f, "refused"),
+            ResourceError::Busy => write!(f, "busy"),
+            ResourceError::NotConnected => write!(f, "not connected"),
+            ResourceError::Unreachable => write!(f, "unreachable"),
+            ResourceError::NonAtomic => write!(f, "non-atomic"),
         }
     }
 }
@@ -369,6 +385,7 @@ pub enum IoError {
     DataLoss = bindings::DATA_LOSS,
     DeviceError = bindings::DEVICE_ERROR,
     SeekFailed = bindings::SEEK_FAILED,
+    Reset = bindings::RESET,
 }
 
 impl IoError {
@@ -394,6 +411,7 @@ impl Display for IoError {
             IoError::DataLoss => write!(f, "data loss"),
             IoError::DeviceError => write!(f, "device error"),
             IoError::SeekFailed => write!(f, "seek failed"),
+            IoError::Reset => write!(f, "reset"),
         }
     }
 }
@@ -467,13 +485,62 @@ extern crate std;
 #[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
 impl From<std::io::ErrorKind> for TwzError {
     fn from(value: std::io::ErrorKind) -> Self {
-        todo!()
+        match value {
+            std::io::ErrorKind::NotFound => NamingError::NotFound.into(),
+            std::io::ErrorKind::PermissionDenied => GenericError::AccessDenied.into(),
+            std::io::ErrorKind::ConnectionRefused => ResourceError::Refused.into(),
+            std::io::ErrorKind::ConnectionReset => IoError::Reset.into(),
+            std::io::ErrorKind::HostUnreachable => ResourceError::Unreachable.into(),
+            std::io::ErrorKind::NetworkUnreachable => ResourceError::Unreachable.into(),
+            std::io::ErrorKind::ConnectionAborted => IoError::Reset.into(),
+            std::io::ErrorKind::NotConnected => ResourceError::NotConnected.into(),
+            std::io::ErrorKind::AddrInUse => NamingError::AlreadyBound.into(),
+            std::io::ErrorKind::AddrNotAvailable => NamingError::NotFound.into(),
+            std::io::ErrorKind::NetworkDown => ResourceError::Unavailable.into(),
+            std::io::ErrorKind::BrokenPipe => IoError::Reset.into(),
+            std::io::ErrorKind::AlreadyExists => NamingError::AlreadyExists.into(),
+            std::io::ErrorKind::WouldBlock => GenericError::WouldBlock.into(),
+            std::io::ErrorKind::NotADirectory => NamingError::WrongNameKind.into(),
+            std::io::ErrorKind::IsADirectory => NamingError::WrongNameKind.into(),
+            std::io::ErrorKind::DirectoryNotEmpty => NamingError::NotEmpty.into(),
+            std::io::ErrorKind::ReadOnlyFilesystem => ResourceError::Refused.into(),
+            std::io::ErrorKind::FilesystemLoop => NamingError::LinkLoop.into(),
+            std::io::ErrorKind::StaleNetworkFileHandle => ArgumentError::BadHandle.into(),
+            std::io::ErrorKind::InvalidInput => ArgumentError::InvalidArgument.into(),
+            std::io::ErrorKind::InvalidData => GenericError::Internal.into(),
+            std::io::ErrorKind::TimedOut => GenericError::TimedOut.into(),
+            std::io::ErrorKind::WriteZero => IoError::DataLoss.into(),
+            std::io::ErrorKind::StorageFull => ResourceError::OutOfResources.into(),
+            std::io::ErrorKind::NotSeekable => IoError::SeekFailed.into(),
+            std::io::ErrorKind::QuotaExceeded => ResourceError::OutOfResources.into(),
+            std::io::ErrorKind::FileTooLarge => ResourceError::OutOfResources.into(),
+            std::io::ErrorKind::ResourceBusy => ResourceError::Busy.into(),
+            std::io::ErrorKind::ExecutableFileBusy => ResourceError::Busy.into(),
+            std::io::ErrorKind::Deadlock => ResourceError::Busy.into(),
+            std::io::ErrorKind::CrossesDevices => ArgumentError::InvalidArgument.into(),
+            std::io::ErrorKind::TooManyLinks => NamingError::LinkLoop.into(),
+            std::io::ErrorKind::InvalidFilename => ArgumentError::InvalidArgument.into(),
+            std::io::ErrorKind::ArgumentListTooLong => ArgumentError::InvalidArgument.into(),
+            std::io::ErrorKind::Interrupted => GenericError::Interrupted.into(),
+            std::io::ErrorKind::Unsupported => GenericError::NotSupported.into(),
+            std::io::ErrorKind::UnexpectedEof => IoError::Reset.into(),
+            std::io::ErrorKind::OutOfMemory => ResourceError::OutOfMemory.into(),
+            std::io::ErrorKind::InProgress => GenericError::InProgress.into(),
+            _ => GenericError::Other.into(),
+        }
     }
 }
 
 #[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
 impl From<std::io::Error> for TwzError {
     fn from(value: std::io::Error) -> Self {
-        todo!()
+        value.kind().into()
+    }
+}
+
+#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+impl From<TwzError> for std::io::Error {
+    fn from(value: TwzError) -> Self {
+        std::io::Error::new(std::io::ErrorKind::Other, value)
     }
 }

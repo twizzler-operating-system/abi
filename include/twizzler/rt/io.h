@@ -62,7 +62,7 @@ extern struct io_result twz_rt_fd_seek(descriptor fd, whence whence, int64_t off
 /// Read from a file. May read less than specified len. Fill *ep with information about the source of the I/O (e.g. socket address).
 extern struct io_result twz_rt_fd_pread_from(descriptor fd, void *buf, size_t len, struct io_ctx *ctx, struct endpoint *ep);
 /// Write to a file. May write less than specified len. Send to specified endpoint (e.g. socket address).
-extern struct io_result twz_rt_fd_pwrite_to(descriptor fd, const void *buf, size_t len, struct io_ctx *ctx, struct endpoint *ep);
+extern struct io_result twz_rt_fd_pwrite_to(descriptor fd, const void *buf, size_t len, struct io_ctx *ctx, const struct endpoint *ep);
 
 /// Io vec, a buffer and a len.
 struct io_vec {

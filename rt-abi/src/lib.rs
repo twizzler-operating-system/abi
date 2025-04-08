@@ -2,6 +2,8 @@
 #![feature(naked_functions)]
 #![feature(allocator_api)]
 #![feature(ip_from)]
+#![cfg_attr(feature = "stderr", feature(io_error_inprogress))]
+#![cfg_attr(feature = "stderr", feature(io_error_more))]
 
 pub mod core;
 #[allow(unused_imports)]
