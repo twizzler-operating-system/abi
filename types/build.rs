@@ -16,8 +16,13 @@ fn main() {
         .arg(format!("src/bindings.rs"))
         .arg("--")
         .arg("-target")
-        .arg(&target)
-        .arg("-nostdinc");
+        .arg(&target);
+
+    if headers.is_some() {
+        bg.arg("-nostdinc");
+    } else {
+        bg.arg("-nostdlibinc");
+    }
 
     if let Some(headers) = headers {
         bg.arg("-I").arg(headers);
