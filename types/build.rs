@@ -17,7 +17,7 @@ fn main() {
         .arg("--")
         .arg("-target")
         .arg(&target)
-        .arg("-nostdlibinc");
+        .arg("-nostdinc");
 
     if let Some(headers) = headers {
         bg.arg("-I").arg(headers);
