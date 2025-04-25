@@ -175,7 +175,7 @@ impl ErrorCategory {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
 pub enum GenericError {
-    Other = bindings::OTHER,
+    Other = bindings::OTHER_ERROR,
     NotSupported = bindings::NOT_SUPPORTED,
     Internal = bindings::INTERNAL,
     WouldBlock = bindings::WOULD_BLOCK,
@@ -328,7 +328,7 @@ impl From<ResourceError> for TwzError {
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(u16)]
 pub enum ObjectError {
-    MapFailed = bindings::MAP_FAILED,
+    MapFailed = bindings::MAPPING_FAILED,
     NotMapped = bindings::NOT_MAPPED,
     InvalidFote = bindings::INVALID_FOTE,
     InvalidPtr = bindings::INVALID_PTR,
@@ -340,7 +340,7 @@ pub enum ObjectError {
 impl ObjectError {
     fn twz_error_from_code(code: u16) -> TwzError {
         match code {
-            bindings::MAP_FAILED => TwzError::Object(ObjectError::MapFailed),
+            bindings::MAPPING_FAILED => TwzError::Object(ObjectError::MapFailed),
             bindings::NOT_MAPPED => TwzError::Object(ObjectError::NotMapped),
             bindings::INVALID_FOTE => TwzError::Object(ObjectError::InvalidFote),
             bindings::INVALID_PTR => TwzError::Object(ObjectError::InvalidPtr),

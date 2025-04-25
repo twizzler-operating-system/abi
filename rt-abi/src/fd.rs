@@ -143,7 +143,7 @@ pub use crate::bindings::name_entry as NameEntry;
 impl Default for NameEntry {
     fn default() -> Self {
         Self {
-            name: [0; crate::bindings::NAME_MAX as usize],
+            name: [0; Self::NAME_MAX_LEN],
             name_len: 0,
             linkname_len: 0,
             info: FdInfo::default().into(),
@@ -152,9 +152,10 @@ impl Default for NameEntry {
 }
 
 impl NameEntry {
+    pub const NAME_MAX_LEN: usize = crate::bindings::NAME_ENTRY_LEN as usize;
     pub fn new(iname: &[u8], info: crate::bindings::fd_info) -> Self {
-        let nl = iname.len().min(crate::bindings::NAME_MAX as usize);
-        let mut name = [0; crate::bindings::NAME_MAX as usize];
+        let nl = iname.len().min(Self::NAME_MAX_LEN);
+        let mut name = [0; Self::NAME_MAX_LEN];
         name[0..nl].copy_from_slice(&iname[0..nl]);
         Self {
             name,
@@ -165,9 +166,9 @@ impl NameEntry {
     }
 
     pub fn new_symlink(iname: &[u8], ilinkname: &[u8], info: crate::bindings::fd_info) -> Self {
-        let nl = iname.len().min(crate::bindings::NAME_MAX as usize);
-        let linknl = ilinkname.len().min(crate::bindings::NAME_MAX as usize - nl);
-        let mut name = [0; crate::bindings::NAME_MAX as usize];
+        let nl = iname.len().min(Self::NAME_MAX_LEN);
+        let linknl = ilinkname.len().min(Self::NAME_MAX_LEN - nl);
+        let mut name = [0; Self::NAME_MAX_LEN];
         name[0..nl].copy_from_slice(&iname[0..nl]);
         name[nl..(nl + linknl)].copy_from_slice(&ilinkname[0..linknl]);
         Self {
