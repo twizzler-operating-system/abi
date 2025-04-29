@@ -5,8 +5,6 @@ use crate::bindings::{self};
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct RawTwzError(bindings::twz_error);
 
-// TODO: From category, to/from errorkind, etc
-
 impl RawTwzError {
     pub fn category(&self) -> ErrorCategory {
         let cat = (self.0 & bindings::ERROR_CATEGORY_MASK) >> bindings::ERROR_CATEGORY_SHIFT;
@@ -17,6 +15,7 @@ impl RawTwzError {
             bindings::NAMING_ERROR => ErrorCategory::Naming,
             bindings::OBJECT_ERROR => ErrorCategory::Object,
             bindings::IO_ERROR => ErrorCategory::Io,
+            bindings::SECURITY_ERROR => ErrorCategory::Security,
             _ => ErrorCategory::Uncategorized,
         }
     }
@@ -40,6 +39,7 @@ impl RawTwzError {
             ErrorCategory::Naming => NamingError::twz_error_from_code(self.code()),
             ErrorCategory::Object => ObjectError::twz_error_from_code(self.code()),
             ErrorCategory::Io => IoError::twz_error_from_code(self.code()),
+            ErrorCategory::Security => SecurityError::twz_error_from_code(self.code()),
         }
     }
 
@@ -77,6 +77,7 @@ pub enum TwzError {
     Object(ObjectError),
     Naming(NamingError),
     Io(IoError),
+    Security(SecurityError),
 }
 
 impl TwzError {
@@ -94,6 +95,7 @@ impl TwzError {
             TwzError::Object(_) => ErrorCategory::Object,
             TwzError::Io(_) => ErrorCategory::Io,
             TwzError::Naming(_) => ErrorCategory::Naming,
+            TwzError::Security(_) => ErrorCategory::Security,
         }
     }
 
@@ -112,6 +114,7 @@ impl TwzError {
             TwzError::Object(object_error) => object_error.code(),
             TwzError::Io(io_error) => io_error.code(),
             TwzError::Naming(naming_error) => naming_error.code(),
+            TwzError::Security(security_error) => security_error.code(),
         }
     }
 }
@@ -126,6 +129,7 @@ impl Display for TwzError {
             TwzError::Object(object_error) => write!(f, "object error: {}", object_error),
             TwzError::Io(io_error) => write!(f, "I/O error: {}", io_error),
             TwzError::Naming(naming_error) => write!(f, "naming error: {}", naming_error),
+            TwzError::Security(security_error) => write!(f, "security error: {}", security_error),
         }
     }
 }
@@ -148,6 +152,7 @@ pub enum ErrorCategory {
     Naming = bindings::NAMING_ERROR,
     Object = bindings::OBJECT_ERROR,
     Io = bindings::IO_ERROR,
+    Security = bindings::SECURITY_ERROR,
 }
 
 impl Display for ErrorCategory {
@@ -160,6 +165,7 @@ impl Display for ErrorCategory {
             ErrorCategory::Naming => write!(f, "naming"),
             ErrorCategory::Object => write!(f, "object"),
             ErrorCategory::Io => write!(f, "I/O"),
+            ErrorCategory::Security => write!(f, "security"),
         }
     }
 }
@@ -471,6 +477,53 @@ impl core::error::Error for NamingError {}
 impl From<NamingError> for TwzError {
     fn from(value: NamingError) -> Self {
         Self::Naming(value)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[repr(u16)]
+pub enum SecurityError {
+    InvalidKey = bindings::INVALID_KEY,
+    InvalidScheme = bindings::INVALID_SCHEME,
+    SignatureMismatch = bindings::SIGNATURE_MISMATCH,
+    GateDenied = bindings::GATE_DENIED,
+    InvalidGate = bindings::INVALID_GATE,
+}
+
+impl SecurityError {
+    fn twz_error_from_code(code: u16) -> TwzError {
+        match code {
+            bindings::INVALID_KEY => TwzError::Security(SecurityError::InvalidKey),
+            bindings::INVALID_SCHEME => TwzError::Security(SecurityError::InvalidScheme),
+            bindings::INVALID_GATE => TwzError::Security(SecurityError::InvalidGate),
+            bindings::GATE_DENIED => TwzError::Security(SecurityError::GateDenied),
+            bindings::SIGNATURE_MISMATCH => TwzError::Security(SecurityError::SignatureMismatch),
+            _ => TwzError::Uncategorized(code),
+        }
+    }
+
+    fn code(&self) -> u16 {
+        *self as u16
+    }
+}
+
+impl Display for SecurityError {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        match self {
+            SecurityError::InvalidKey => write!(f, "invalid key"),
+            SecurityError::InvalidScheme => write!(f, "invalid scheme"),
+            SecurityError::SignatureMismatch => write!(f, "signature mismatch"),
+            SecurityError::GateDenied => write!(f, "gate denied"),
+            SecurityError::InvalidGate => write!(f, "invalid gate"),
+        }
+    }
+}
+
+impl core::error::Error for SecurityError {}
+
+impl From<SecurityError> for TwzError {
+    fn from(value: SecurityError) -> Self {
+        Self::Security(value)
     }
 }
 
