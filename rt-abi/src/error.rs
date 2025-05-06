@@ -3,6 +3,7 @@ use core::fmt::Display;
 use crate::bindings::{self};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]
+#[repr(transparent)]
 pub struct RawTwzError(bindings::twz_error);
 
 impl RawTwzError {
@@ -65,6 +66,12 @@ impl RawTwzError {
         } else {
             Err(self.error())
         }
+    }
+}
+
+impl From<TwzError> for RawTwzError {
+    fn from(value: TwzError) -> Self {
+        RawTwzError(value.raw())
     }
 }
 
