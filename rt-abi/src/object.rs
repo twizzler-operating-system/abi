@@ -393,10 +393,60 @@ pub fn twz_rt_map_two_objects(
     }
 }
 
+bitflags::bitflags! {
+    /// Mapping protections for mapping objects into the address space.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+    pub struct Protections: u16 {
+        /// Read allowed.
+        const READ = crate::bindings::MAP_FLAG_R as u16;
+        /// Write allowed.
+        const WRITE = crate::bindings::MAP_FLAG_W as u16;
+        /// Exec allowed.
+        const EXEC = crate::bindings::MAP_FLAG_X as u16;
+    }
+}
+
+impl From<Protections> for MapFlags {
+    fn from(p: Protections) -> Self {
+        let mut f = MapFlags::empty();
+        if p.contains(Protections::READ) {
+            f.insert(MapFlags::READ);
+        }
+
+        if p.contains(Protections::WRITE) {
+            f.insert(MapFlags::WRITE);
+        }
+
+        if p.contains(Protections::EXEC) {
+            f.insert(MapFlags::EXEC);
+        }
+        f
+    }
+}
+
+impl From<MapFlags> for Protections {
+    fn from(value: MapFlags) -> Self {
+        let mut f = Self::empty();
+        if value.contains(MapFlags::READ) {
+            f.insert(Protections::READ);
+        }
+        if value.contains(MapFlags::WRITE) {
+            f.insert(Protections::WRITE);
+        }
+        if value.contains(MapFlags::EXEC) {
+            f.insert(Protections::EXEC);
+        }
+        f
+    }
+}
+
+bitflags::bitflags! {
 /// Flags for objects.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq, Hash, Default)]
-#[repr(transparent)]
-pub struct MetaFlags(pub u32);
+pub struct MetaFlags: u16 {
+    const IMMUTABLE = 1;
+}
+}
 
 /// A nonce for avoiding object ID collision.
 #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Ord, Eq, Hash, Default)]
@@ -404,6 +454,7 @@ pub struct MetaFlags(pub u32);
 pub struct Nonce(pub u128);
 
 /// The core metadata that all objects share.
+#[derive(Clone, Copy, Debug, PartialEq, Hash)]
 #[repr(C)]
 pub struct MetaInfo {
     /// The ID nonce.
@@ -412,6 +463,8 @@ pub struct MetaInfo {
     pub kuid: ObjID,
     /// The object flags.
     pub flags: MetaFlags,
+    /// Default protections
+    pub default_prot: Protections,
     /// The number of FOT entries.
     pub fotcount: u16,
     /// The number of meta extensions.
