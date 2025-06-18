@@ -247,6 +247,12 @@ impl Drop for ObjectHandle {
     }
 }
 
+impl AsRef<ObjectHandle> for ObjectHandle {
+    fn as_ref(&self) -> &ObjectHandle {
+        self
+    }
+}
+
 impl Default for crate::bindings::object_handle {
     fn default() -> Self {
         Self {
