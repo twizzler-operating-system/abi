@@ -312,9 +312,20 @@ pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_resolve_fot(this: &ObjectHandle, idx: u64, valid_len: usize) -> Result<ObjectHandle> {
+pub fn twz_rt_resolve_fot(
+    this: &ObjectHandle,
+    idx: u64,
+    valid_len: usize,
+    flags: MapFlags,
+) -> Result<ObjectHandle> {
     unsafe {
-        crate::bindings::twz_rt_resolve_fot(&this.0 as *const _ as *mut _, idx, valid_len).into()
+        crate::bindings::twz_rt_resolve_fot(
+            &this.0 as *const _ as *mut _,
+            idx,
+            valid_len,
+            flags.bits(),
+        )
+        .into()
     }
 }
 
@@ -356,9 +367,15 @@ pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u32> {
 }
 
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_resolve_fot_local(start: *mut u8, idx: u64, valid_len: usize) -> *mut u8 {
+pub fn twz_rt_resolve_fot_local(
+    start: *mut u8,
+    idx: u64,
+    valid_len: usize,
+    flags: MapFlags,
+) -> *mut u8 {
     unsafe {
-        let res = crate::bindings::twz_rt_resolve_fot_local(start.cast(), idx, valid_len);
+        let res =
+            crate::bindings::twz_rt_resolve_fot_local(start.cast(), idx, valid_len, flags.bits());
         res.cast()
     }
 }
@@ -367,6 +384,18 @@ pub fn twz_rt_resolve_fot_local(start: *mut u8, idx: u64, valid_len: usize) -> *
 #[cfg(not(feature = "kernel"))]
 pub fn twz_rt_release_handle(handle: &mut ObjectHandle) {
     unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0) }
+}
+
+/// Update a handle.
+#[cfg(not(feature = "kernel"))]
+pub fn twz_rt_update_handle(handle: &mut ObjectHandle) -> Result<()> {
+    let r = unsafe { crate::bindings::twz_rt_update_handle(&mut handle.0) };
+    let r = RawTwzError::new(r);
+    if r.is_success() {
+        Ok(())
+    } else {
+        Err(r.error())
+    }
 }
 
 #[deprecated]
