@@ -83,22 +83,6 @@ pub fn twz_rt_get_loaded_image(id: LoadedImageId) -> Option<LoadedImage> {
     }
 }
 
-/*
-/// Iterate over the loaded program components known to the runtime. This function has similar semantics
-/// to C's dl_iter_phdr. This function will call f with a [DlPhdrInfo] for each known loaded component,
-/// until all components are processed, or until f returns a non-zero value (which this function then returns).
-pub fn twz_rt_iter_phdr(f: &dyn Fn(&DlPhdrInfo) -> i32) -> i32 {
-    // The twz_rt_iter_phdr call acts like dl_iter_phdr, so we'll need to trampoline to call f.
-    extern "C-unwind" fn trampoline(info: *const DlPhdrInfo, size: usize, data: *mut core::ffi::c_void) -> i32 {
-        unsafe {
-            // Safety: the value of data is passed in by us below, and the contract with the runtime says that
-            // the pointer to info is valid.
-            let f: Box<&dyn Fn(&DlPhdrInfo) -> i32> = data.cast::<*mut Box<_>>().as_mut().unwrap();
-            f(&*info)
-        }
-    }
-
-    let mut data = Box::new(f);
-    unsafe { crate::bindings::twz_rt_iter_phdr(Some(trampoline), &mut data as *mut _) }
-}
-*/
+#[repr(transparent)]
+#[derive(Debug, Copy, Clone)]
+pub struct LinkMap(pub crate::bindings::link_map);
