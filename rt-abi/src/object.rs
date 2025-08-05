@@ -120,6 +120,8 @@ bitflags::bitflags! {
         const PERSIST = crate::bindings::MAP_FLAG_PERSIST;
         /// Use runtime support for read stability.
         const INDIRECT = crate::bindings::MAP_FLAG_INDIRECT;
+        /// Use runtime support for read stability.
+        const NO_NULLPAGE = crate::bindings::MAP_FLAG_NO_NULLPAGE;
     }
 }
 
