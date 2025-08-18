@@ -6,6 +6,9 @@ fn main() {
     let prefix = "../include/twizzler";
     let mut bg = std::process::Command::new("bindgen");
 
+    let path = std::env::var("PATH").unwrap();
+    std::env::set_var("PATH", format!("toolchain/install/bin:{}", path));
+
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
     }

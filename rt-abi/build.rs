@@ -3,6 +3,9 @@ fn main() {
     let sysroots = std::env::var("TWIZZLER_ABI_SYSROOTS").ok();
     let target = std::env::var("TARGET").unwrap();
 
+    let path = std::env::var("PATH").unwrap();
+    std::env::set_var("PATH", format!("toolchain/install/bin:{}", path));
+
     let prefix = "../include/twizzler/rt";
     let mut bg = std::process::Command::new("bindgen");
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
