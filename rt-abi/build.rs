@@ -3,16 +3,19 @@ fn main() {
     let sysroots = std::env::var("TWIZZLER_ABI_SYSROOTS").ok();
     let target = std::env::var("TARGET").unwrap();
 
-    let path = std::env::var("PATH").unwrap();
-    std::env::set_var("PATH", format!("toolchain/install/bin:{}", path));
-
     let prefix = "../include/twizzler/rt";
+
+    let path = std::env::var("PATH").unwrap();
+    let pwd = std::env::var("PWD").unwrap();
+    std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
     let mut bg = std::process::Command::new("bindgen");
+
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
     }
     bg.arg("--override-abi").arg(".*=C-unwind");
     bg.arg("--use-core");
+    bg.arg("--with-derive-default");
     bg.arg(format!("{}/__all.h", prefix));
     bg.arg("-o")
         .arg(format!("src/bindings.rs"))

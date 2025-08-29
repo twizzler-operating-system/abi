@@ -4,16 +4,18 @@ fn main() {
     let target = std::env::var("TARGET").unwrap();
 
     let prefix = "../include/twizzler";
-    let mut bg = std::process::Command::new("bindgen");
 
     let path = std::env::var("PATH").unwrap();
-    std::env::set_var("PATH", format!("toolchain/install/bin:{}", path));
+    let pwd = std::env::var("PWD").unwrap();
+    std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
+    let mut bg = std::process::Command::new("bindgen");
 
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
     }
     bg.arg("--override-abi").arg(".*=C-unwind");
     bg.arg("--use-core");
+    bg.arg("--with-derive-default");
     bg.arg(format!("{}/types.h", prefix));
     bg.arg("-o")
         .arg(format!("src/bindings.rs"))

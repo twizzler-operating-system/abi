@@ -140,17 +140,6 @@ pub fn twz_rt_fd_get_info(fd: RawFd) -> Result<FdInfo> {
 
 pub use crate::bindings::name_entry as NameEntry;
 
-impl Default for NameEntry {
-    fn default() -> Self {
-        Self {
-            name: [0; Self::NAME_MAX_LEN],
-            name_len: 0,
-            linkname_len: 0,
-            info: FdInfo::default().into(),
-        }
-    }
-}
-
 impl NameEntry {
     pub const NAME_MAX_LEN: usize = crate::bindings::NAME_ENTRY_LEN as usize;
     pub fn new(iname: &[u8], info: crate::bindings::fd_info) -> Self {

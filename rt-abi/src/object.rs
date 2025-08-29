@@ -255,19 +255,6 @@ impl AsRef<ObjectHandle> for ObjectHandle {
     }
 }
 
-impl Default for crate::bindings::object_handle {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            map_flags: 0,
-            start: core::ptr::null_mut(),
-            meta: core::ptr::null_mut(),
-            runtime_info: core::ptr::null_mut(),
-            valid_len: 0,
-        }
-    }
-}
-
 #[cfg(not(feature = "kernel"))]
 impl From<Result<ObjectHandle>> for crate::bindings::map_result {
     fn from(value: Result<ObjectHandle>) -> Self {
