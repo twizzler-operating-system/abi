@@ -299,6 +299,7 @@ impl TryFrom<u32> for OpenAnonKind {
             crate::bindings::open_anon_kind_AnonKind_Pipe => Ok(Self::Pipe),
             crate::bindings::open_anon_kind_AnonKind_SocketConnect => Ok(Self::SocketConnect),
             crate::bindings::open_anon_kind_AnonKind_SocketBind => Ok(Self::SocketBind),
+            crate::bindings::open_anon_kind_AnonKind_SocketAccept => Ok(Self::SocketAccept),
             _ => Err(()),
         }
     }
