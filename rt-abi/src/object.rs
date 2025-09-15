@@ -8,7 +8,7 @@ use core::{
 };
 
 use crate::{
-    bindings::LEN_MUL,
+    bindings::{object_cmd, twz_rt_object_cmd, LEN_MUL, OBJECT_CMD_DELETE},
     error::{RawTwzError, TwzError},
     Result,
 };
@@ -125,6 +125,22 @@ bitflags::bitflags! {
     }
 }
 
+#[repr(u32)]
+pub enum ObjectCmd {
+    Delete = OBJECT_CMD_DELETE,
+}
+
+impl TryFrom<object_cmd> for ObjectCmd {
+    type Error = TwzError;
+
+    fn try_from(value: object_cmd) -> core::result::Result<Self, Self::Error> {
+        match value {
+            OBJECT_CMD_DELETE => Ok(ObjectCmd::Delete),
+            _ => Err(TwzError::INVALID_ARGUMENT),
+        }
+    }
+}
+
 #[allow(dead_code)]
 impl ObjectHandle {
     fn refs(&self) -> *const AtomicU64 {
@@ -187,6 +203,19 @@ impl ObjectHandle {
         Self(raw)
     }
 
+    #[cfg(not(feature = "kernel"))]
+    /// Modify an object.
+    pub fn cmd(&self, cmd: ObjectCmd, arg: u64) -> Result<()> {
+        let err =
+            unsafe { twz_rt_object_cmd(&self.0 as *const _ as *mut _, cmd as object_cmd, arg) };
+        let raw = RawTwzError::new(err);
+        if raw.is_success() {
+            Ok(())
+        } else {
+            Err(raw.error())
+        }
+    }
+
     /// Make a new object handle.
     ///
     /// # Safety
@@ -245,7 +274,7 @@ impl Drop for ObjectHandle {
         // This fence is needed to prevent reordering of the use and deletion
         // of the data.
         core::sync::atomic::fence(Ordering::Acquire);
-        twz_rt_release_handle(self);
+        twz_rt_release_handle(self, 0);
     }
 }
 
@@ -369,10 +398,13 @@ pub fn twz_rt_resolve_fot_local(
     }
 }
 
+#[cfg(not(feature = "kernel"))]
+use crate::bindings::release_flags;
+
 /// Release a handle. Should be only called by the ObjectHandle drop call.
 #[cfg(not(feature = "kernel"))]
-pub fn twz_rt_release_handle(handle: &mut ObjectHandle) {
-    unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0) }
+pub fn twz_rt_release_handle(handle: &mut ObjectHandle, flags: release_flags) {
+    unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0, flags) }
 }
 
 /// Update a handle.
