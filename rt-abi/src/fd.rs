@@ -277,6 +277,7 @@ pub enum OpenAnonKind {
     Pipe = crate::bindings::open_anon_kind_AnonKind_Pipe,
     SocketConnect = crate::bindings::open_anon_kind_AnonKind_SocketConnect,
     SocketBind = crate::bindings::open_anon_kind_AnonKind_SocketBind,
+    SocketAccept = crate::bindings::open_anon_kind_AnonKind_SocketAccept,
 }
 
 impl TryFrom<u32> for OpenAnonKind {
@@ -287,6 +288,7 @@ impl TryFrom<u32> for OpenAnonKind {
             crate::bindings::open_anon_kind_AnonKind_Pipe => Ok(Self::Pipe),
             crate::bindings::open_anon_kind_AnonKind_SocketConnect => Ok(Self::SocketConnect),
             crate::bindings::open_anon_kind_AnonKind_SocketBind => Ok(Self::SocketBind),
+            crate::bindings::open_anon_kind_AnonKind_SocketAccept => Ok(Self::SocketAccept),
             _ => Err(()),
         }
     }
@@ -298,6 +300,7 @@ impl From<OpenAnonKind> for u32 {
             OpenAnonKind::Pipe => crate::bindings::open_anon_kind_AnonKind_Pipe,
             OpenAnonKind::SocketBind => crate::bindings::open_anon_kind_AnonKind_SocketBind,
             OpenAnonKind::SocketConnect => crate::bindings::open_anon_kind_AnonKind_SocketConnect,
+            OpenAnonKind::SocketAccept => crate::bindings::open_anon_kind_AnonKind_SocketAccept,
         }
     }
 }
@@ -425,6 +428,19 @@ pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress, flags: u32) -> Result
             flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
+        )
+        .into()
+    }
+}
+
+// Accept a connection on a bound socket file descriptor, creating a new file descriptor.
+pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::SocketAccept.into(),
+            flags,
+            ((&mut fd) as *mut RawFd).cast(),
+            core::mem::size_of::<RawFd>(),
         )
         .into()
     }
