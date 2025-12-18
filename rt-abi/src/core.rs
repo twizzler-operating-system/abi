@@ -101,8 +101,8 @@ pub mod rt0 {
     //!   - _start, the entry point of an executable (per-arch, as this is assembly code).
 
     #[cfg(target_arch = "aarch64")]
-    #[no_mangle]
-    #[naked]
+    #[unsafe(no_mangle)]
+    #[unsafe(naked)]
     pub unsafe extern "C" fn _start() {
         core::arch::naked_asm!(
             "b {entry}",
@@ -111,8 +111,8 @@ pub mod rt0 {
     }
 
     #[cfg(target_arch = "x86_64")]
-    #[no_mangle]
-    #[naked]
+    #[unsafe(no_mangle)]
+    #[unsafe(naked)]
     pub unsafe extern "C" fn _start() {
         // Align the stack and jump to rust code. If we come back, trigger an exception.
         core::arch::naked_asm!(

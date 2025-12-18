@@ -1,7 +1,5 @@
 #![no_std]
-#![feature(naked_functions)]
 #![feature(allocator_api)]
-#![feature(ip_from)]
 #![cfg_attr(
     all(feature = "stderr", not(feature = "rustc-dep-of-std")),
     feature(io_error_inprogress)
