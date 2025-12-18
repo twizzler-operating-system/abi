@@ -9,14 +9,16 @@ edition = "2021"
 crate-type = ["rlib"]
 
 [dependencies]
-bitflags = "2"
+# This is the last version that includes the feature flag that allows this crate to be
+# used by the standard library (https://github.com/bitflags/bitflags/pull/454).
+bitflags = "=2.9.1"
 twizzler-types = { path = "../types" }
 
 # We depend on some usually built-in crates here. In particular is we need to adhere to this "rustc-std-workspace-core"
 # semi-feature (https://github.com/rust-lang/wg-cargo-std-aware/issues/51).
-[dependencies.compiler_builtins]
-optional = true
-version = "0.1"
+#[dependencies.compiler_builtins]
+#optional = true
+#version = "0.1.160"
 
 [dependencies.core]
 optional = true
@@ -27,8 +29,8 @@ version = "1.0.0"
 # Activate if compiling as part of libstd.
 rustc-dep-of-std = [
     "core",
-    "compiler_builtins/rustc-dep-of-std",
-    "bitflags/rustc-dep-of-std",
+    #"compiler_builtins/rustc-dep-of-std",
+    "bitflags/core",
     "twizzler-types/rustc-dep-of-std",
 ]
 

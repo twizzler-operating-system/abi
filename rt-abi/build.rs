@@ -7,7 +7,9 @@ fn main() {
 
     let path = std::env::var("PATH").unwrap();
     let pwd = std::env::var("PWD").unwrap();
-    std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
+    unsafe {
+        std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
+    }
     let mut bg = std::process::Command::new("bindgen");
 
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
@@ -34,7 +36,7 @@ fn main() {
     }
 
     if let Some(sysroots) = sysroots {
-        let sysheaders = format!("{}/{}", sysroots, target);
+        let sysheaders = format!("{}/{}/include", sysroots, target);
         bg.arg("-I").arg(sysheaders);
     }
     let status = bg.status().expect("failed to generate bindings");
