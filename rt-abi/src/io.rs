@@ -13,6 +13,12 @@ bitflags::bitflags! {
     pub struct IoFlags : crate::bindings::io_flags {
         /// This operation should have non-blocking semantics, regardless of fd status.
         const NONBLOCKING = crate::bindings::IO_NONBLOCKING;
+        /// This operation should peek at the data without removing it from the buffer.
+        const PEEK = crate::bindings::IO_PEEK;
+        /// This operation should wait for all data to be read before returning (not guaranteed).
+        const WAITALL = crate::bindings::IO_WAITALL;
+        /// This operation should read out-of-band data.
+        const OOB = crate::bindings::IO_OOB;
     }
 }
 
@@ -150,6 +156,20 @@ impl From<SocketAddress> for Endpoint {
     }
 }
 
+impl TryFrom<Endpoint> for SocketAddress {
+    type Error = crate::error::TwzError;
+
+    fn try_from(value: Endpoint) -> Result<Self> {
+        match value.0.kind {
+            crate::bindings::endpoint_kind_Endpoint_Socket => {
+                let addr = unsafe { value.0.addr.socket_addr };
+                Ok(SocketAddress(addr))
+            }
+            _ => Err(crate::error::TwzError::INVALID_ARGUMENT),
+        }
+    }
+}
+
 /// Read a file descriptor into a buffer, up to buf.len() bytes. On success, returns the number of
 /// bytes actually read, which may be fewer than requested.
 pub fn twz_rt_fd_pread_from(
@@ -209,4 +229,37 @@ pub fn twz_rt_fd_preadv(fd: RawFd, ios: &[IoSlice], ctx: &mut IoCtx) -> Result<u
 /// this function returns an error.
 pub fn twz_rt_fd_pwritev(fd: RawFd, ios: &[IoSlice], ctx: &mut IoCtx) -> Result<usize> {
     unsafe { crate::bindings::twz_rt_fd_pwritev(fd, ios.as_ptr(), ios.len(), &mut ctx.0).into() }
+}
+
+pub fn twz_rt_fd_get_config<T>(fd: RawFd, reg: u32) -> Result<T> {
+    let mut val = core::mem::MaybeUninit::<T>::uninit();
+    let e = unsafe {
+        crate::bindings::twz_rt_fd_get_config(
+            fd,
+            reg,
+            val.as_mut_ptr().cast(),
+            core::mem::size_of::<T>(),
+        )
+    };
+    let raw = RawTwzError::new(e);
+    if !raw.is_success() {
+        return Err(raw.error());
+    }
+    Ok(unsafe { val.assume_init() })
+}
+
+pub fn twz_rt_fd_set_config<T>(fd: RawFd, reg: u32, val: T) -> Result<()> {
+    let e = unsafe {
+        crate::bindings::twz_rt_fd_set_config(
+            fd,
+            reg,
+            ((&val) as *const T).cast(),
+            core::mem::size_of::<T>(),
+        )
+    };
+    let raw = RawTwzError::new(e);
+    if !raw.is_success() {
+        return Err(raw.error());
+    }
+    Ok(())
 }

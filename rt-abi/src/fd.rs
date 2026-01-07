@@ -309,6 +309,13 @@ impl From<OpenAnonKind> for u32 {
 #[repr(transparent)]
 pub struct SocketAddress(pub(crate) crate::bindings::socket_address);
 
+#[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
+#[repr(u32)]
+pub enum ProtKind {
+    Stream = crate::bindings::prot_kind_ProtKind_Stream,
+    Datagram = crate::bindings::prot_kind_ProtKind_Datagram,
+}
+
 impl SocketAddress {
     fn new_v4(octets: [u8; 4], port: u16) -> Self {
         Self(crate::bindings::socket_address {
@@ -421,15 +428,40 @@ impl From<core::net::IpAddr> for SocketAddress {
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_socket_bind(mut addr: SocketAddress, flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket_bind(
+    mut addr: SocketAddress,
+    flags: u32,
+    prot: ProtKind,
+) -> Result<RawFd> {
     unsafe {
         crate::bindings::twz_rt_fd_open_anon(
             OpenAnonKind::SocketBind.into(),
             flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
+            prot as u32,
         )
         .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_socket_rebind(
+    fd: RawFd,
+    mut addr: SocketAddress,
+    flags: u32,
+    prot: ProtKind,
+) -> Result<()> {
+    unsafe {
+        RawTwzError::new(crate::bindings::twz_rt_fd_reopen_anon(
+            fd,
+            OpenAnonKind::SocketBind.into(),
+            flags,
+            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
+            core::mem::size_of::<crate::bindings::socket_address>(),
+            prot as u32,
+        ))
+        .result()
     }
 }
 
@@ -441,21 +473,47 @@ pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> 
             flags,
             ((&mut fd) as *mut RawFd).cast(),
             core::mem::size_of::<RawFd>(),
+            crate::bindings::prot_kind_ProtKind_Stream,
         )
         .into()
     }
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_socket_connect(mut addr: SocketAddress, flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket_connect(
+    mut addr: SocketAddress,
+    flags: u32,
+    prot: ProtKind,
+) -> Result<RawFd> {
     unsafe {
         crate::bindings::twz_rt_fd_open_anon(
             OpenAnonKind::SocketConnect.into(),
             flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
+            prot as u32,
         )
         .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_socket_reconnect(
+    fd: RawFd,
+    mut addr: SocketAddress,
+    flags: u32,
+    prot: ProtKind,
+) -> Result<()> {
+    unsafe {
+        RawTwzError::new(crate::bindings::twz_rt_fd_reopen_anon(
+            fd,
+            OpenAnonKind::SocketConnect.into(),
+            flags,
+            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
+            core::mem::size_of::<crate::bindings::socket_address>(),
+            prot as u32,
+        ))
+        .result()
     }
 }
 
@@ -467,6 +525,7 @@ pub fn twz_rt_fd_open_pipe(flags: u32) -> Result<RawFd> {
             flags,
             core::ptr::null_mut(),
             0,
+            crate::bindings::prot_kind_ProtKind_Stream,
         )
         .into()
     }
@@ -510,6 +569,30 @@ pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
             fd,
             crate::bindings::FD_CMD_TRUNCATE,
             (&mut len as *mut u64).cast(),
+            core::ptr::null_mut(),
+        );
+        let raw = RawTwzError::new(e);
+        if !raw.is_success() {
+            return Err(raw.error());
+        }
+    }
+    Ok(())
+}
+
+/// Truncate a file descriptor.
+pub fn twz_rt_fd_shutdown(fd: RawFd, read: bool, write: bool) -> Result<()> {
+    let mut bits: u32 = 0;
+    if read {
+        bits |= 1;
+    }
+    if write {
+        bits |= 2;
+    }
+    unsafe {
+        let e = crate::bindings::twz_rt_fd_cmd(
+            fd,
+            crate::bindings::FD_CMD_SHUTDOWN,
+            (&mut bits as *mut u32).cast(),
             core::ptr::null_mut(),
         );
         let raw = RawTwzError::new(e);
