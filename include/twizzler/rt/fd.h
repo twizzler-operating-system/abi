@@ -114,6 +114,8 @@ enum fd_kind {
   FdKind_Directory,
   /// Symbolic link
   FdKind_SymLink,
+  FdKind_Socket,
+  FdKind_Pipe,
 };
 
 /// Information about a file descriptor.

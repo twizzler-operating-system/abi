@@ -307,7 +307,7 @@ impl From<OpenAnonKind> for u32 {
 
 #[derive(Clone, Copy)]
 #[repr(transparent)]
-pub struct SocketAddress(pub(crate) crate::bindings::socket_address);
+pub struct SocketAddress(pub crate::bindings::socket_address);
 
 #[derive(Clone, Copy, Eq, PartialEq, Ord, PartialOrd, Hash, Debug)]
 #[repr(u32)]
@@ -439,6 +439,20 @@ pub fn twz_rt_fd_open_socket_bind(
             flags,
             ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
             core::mem::size_of::<crate::bindings::socket_address>(),
+            prot as u32,
+        )
+        .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_open_socket(flags: u32, prot: ProtKind) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::SocketBind.into(),
+            flags,
+            core::ptr::null_mut(),
+            0,
             prot as u32,
         )
         .into()
@@ -579,7 +593,6 @@ pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
     Ok(())
 }
 
-/// Truncate a file descriptor.
 pub fn twz_rt_fd_shutdown(fd: RawFd, read: bool, write: bool) -> Result<()> {
     let mut bits: u32 = 0;
     if read {
