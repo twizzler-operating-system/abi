@@ -63,6 +63,8 @@ enum open_anon_kind {
   AnonKind_SocketConnect,
   AnonKind_SocketBind,
   AnonKind_SocketAccept,
+  AnonKind_PtyServer,
+  AnonKind_PtyClient,
 };
 
 enum addr_kind {
@@ -116,6 +118,7 @@ enum fd_kind {
   FdKind_SymLink,
   FdKind_Socket,
   FdKind_Pipe,
+  FdKind_Pty,
 };
 
 /// Information about a file descriptor.

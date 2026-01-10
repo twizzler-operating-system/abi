@@ -278,6 +278,8 @@ pub enum OpenAnonKind {
     SocketConnect = crate::bindings::open_anon_kind_AnonKind_SocketConnect,
     SocketBind = crate::bindings::open_anon_kind_AnonKind_SocketBind,
     SocketAccept = crate::bindings::open_anon_kind_AnonKind_SocketAccept,
+    PtyServer = crate::bindings::open_anon_kind_AnonKind_PtyServer,
+    PtyClient = crate::bindings::open_anon_kind_AnonKind_PtyClient,
 }
 
 impl TryFrom<u32> for OpenAnonKind {
@@ -289,6 +291,8 @@ impl TryFrom<u32> for OpenAnonKind {
             crate::bindings::open_anon_kind_AnonKind_SocketConnect => Ok(Self::SocketConnect),
             crate::bindings::open_anon_kind_AnonKind_SocketBind => Ok(Self::SocketBind),
             crate::bindings::open_anon_kind_AnonKind_SocketAccept => Ok(Self::SocketAccept),
+            crate::bindings::open_anon_kind_AnonKind_PtyServer => Ok(Self::PtyServer),
+            crate::bindings::open_anon_kind_AnonKind_PtyClient => Ok(Self::PtyClient),
             _ => Err(()),
         }
     }
@@ -301,6 +305,8 @@ impl From<OpenAnonKind> for u32 {
             OpenAnonKind::SocketBind => crate::bindings::open_anon_kind_AnonKind_SocketBind,
             OpenAnonKind::SocketConnect => crate::bindings::open_anon_kind_AnonKind_SocketConnect,
             OpenAnonKind::SocketAccept => crate::bindings::open_anon_kind_AnonKind_SocketAccept,
+            OpenAnonKind::PtyServer => crate::bindings::open_anon_kind_AnonKind_PtyServer,
+            OpenAnonKind::PtyClient => crate::bindings::open_anon_kind_AnonKind_PtyClient,
         }
     }
 }
@@ -528,6 +534,34 @@ pub fn twz_rt_fd_socket_reconnect(
             prot as u32,
         ))
         .result()
+    }
+}
+
+/// Open an PTY.
+pub fn twz_rt_fd_open_pty_server(mut id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::PtyServer.into(),
+            flags,
+            ((&mut id) as *mut crate::bindings::objid).cast(),
+            core::mem::size_of::<crate::bindings::objid>(),
+            ProtKind::Stream as u32,
+        )
+        .into()
+    }
+}
+
+/// Open an PTY.
+pub fn twz_rt_fd_open_pty_client(mut id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+    unsafe {
+        crate::bindings::twz_rt_fd_open_anon(
+            OpenAnonKind::PtyClient.into(),
+            flags,
+            ((&mut id) as *mut crate::bindings::objid).cast(),
+            core::mem::size_of::<crate::bindings::objid>(),
+            ProtKind::Stream as u32,
+        )
+        .into()
     }
 }
 
