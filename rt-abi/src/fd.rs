@@ -25,6 +25,10 @@ pub enum FdKind {
     Regular = crate::bindings::fd_kind_FdKind_Regular,
     Directory = crate::bindings::fd_kind_FdKind_Directory,
     SymLink = crate::bindings::fd_kind_FdKind_SymLink,
+    Pty = crate::bindings::fd_kind_FdKind_Pty,
+    Socket = crate::bindings::fd_kind_FdKind_Socket,
+    Pipe = crate::bindings::fd_kind_FdKind_Pipe,
+    Compartment = crate::bindings::fd_kind_FdKind_Compartment,
     Other = u32::MAX,
 }
 
@@ -34,6 +38,10 @@ impl From<u32> for FdKind {
             crate::bindings::fd_kind_FdKind_Regular => Self::Regular,
             crate::bindings::fd_kind_FdKind_Directory => Self::Directory,
             crate::bindings::fd_kind_FdKind_SymLink => Self::SymLink,
+            crate::bindings::fd_kind_FdKind_Pty => Self::Pty,
+            crate::bindings::fd_kind_FdKind_Socket => Self::Socket,
+            crate::bindings::fd_kind_FdKind_Pipe => Self::Pipe,
+            crate::bindings::fd_kind_FdKind_Compartment => Self::Compartment,
             _ => Self::Other,
         }
     }
@@ -45,6 +53,10 @@ impl Into<u32> for FdKind {
             Self::Regular => crate::bindings::fd_kind_FdKind_Regular,
             Self::Directory => crate::bindings::fd_kind_FdKind_Directory,
             Self::SymLink => crate::bindings::fd_kind_FdKind_SymLink,
+            Self::Pty => crate::bindings::fd_kind_FdKind_Pty,
+            Self::Socket => crate::bindings::fd_kind_FdKind_Socket,
+            Self::Pipe => crate::bindings::fd_kind_FdKind_Pipe,
+            Self::Compartment => crate::bindings::fd_kind_FdKind_Compartment,
             Self::Other => u32::MAX,
         }
     }
@@ -197,13 +209,23 @@ pub fn twz_rt_fd_copen(
     create: crate::bindings::create_options,
     flags: u32,
 ) -> Result<RawFd> {
-    let info = crate::bindings::open_info {
-        name: name.as_ptr().cast(),
-        len: name.count_bytes(),
+    let name_len = name.count_bytes().min(crate::bindings::NAME_DATA_MAX);
+    let mut info = crate::bindings::open_info {
+        len: name_len,
         create,
         flags,
+        name: [0; _],
     };
-    unsafe { crate::bindings::twz_rt_fd_open(info).into() }
+    info.name[0..name_len].copy_from_slice(&name.to_bytes()[0..name_len]);
+    unsafe {
+        crate::bindings::twz_rt_fd_open(
+            crate::bindings::open_kind_OpenKind_Path,
+            flags,
+            (&mut info as *mut crate::bindings::open_info).cast(),
+            size_of_val(&info),
+        )
+        .into()
+    }
 }
 
 /// Open a file descriptor by name, as a Rust-string.
@@ -212,13 +234,23 @@ pub fn twz_rt_fd_open(
     create: crate::bindings::create_options,
     flags: u32,
 ) -> Result<RawFd> {
-    let info = crate::bindings::open_info {
-        name: name.as_ptr().cast(),
-        len: name.len(),
+    let name_len = name.as_bytes().len().min(crate::bindings::NAME_DATA_MAX);
+    let mut info = crate::bindings::open_info {
+        len: name_len,
         create,
         flags,
+        name: [0; _],
     };
-    unsafe { crate::bindings::twz_rt_fd_open(info).into() }
+    info.name[0..name_len].copy_from_slice(&name.as_bytes()[0..name_len]);
+    unsafe {
+        crate::bindings::twz_rt_fd_open(
+            crate::bindings::open_kind_OpenKind_Path,
+            flags,
+            (&mut info as *mut crate::bindings::open_info).cast(),
+            size_of_val(&info),
+        )
+        .into()
+    }
 }
 
 /// Remove a name
@@ -273,40 +305,50 @@ pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
 
 #[derive(Debug, Copy, Clone, Eq, PartialEq, Ord, PartialOrd)]
 #[repr(u32)]
-pub enum OpenAnonKind {
-    Pipe = crate::bindings::open_anon_kind_AnonKind_Pipe,
-    SocketConnect = crate::bindings::open_anon_kind_AnonKind_SocketConnect,
-    SocketBind = crate::bindings::open_anon_kind_AnonKind_SocketBind,
-    SocketAccept = crate::bindings::open_anon_kind_AnonKind_SocketAccept,
-    PtyServer = crate::bindings::open_anon_kind_AnonKind_PtyServer,
-    PtyClient = crate::bindings::open_anon_kind_AnonKind_PtyClient,
+pub enum OpenKind {
+    Object = crate::bindings::open_kind_OpenKind_Object,
+    Path = crate::bindings::open_kind_OpenKind_Path,
+    Pipe = crate::bindings::open_kind_OpenKind_Pipe,
+    SocketConnect = crate::bindings::open_kind_OpenKind_SocketConnect,
+    SocketBind = crate::bindings::open_kind_OpenKind_SocketBind,
+    SocketAccept = crate::bindings::open_kind_OpenKind_SocketAccept,
+    PtyServer = crate::bindings::open_kind_OpenKind_PtyServer,
+    PtyClient = crate::bindings::open_kind_OpenKind_PtyClient,
+    Compartment = crate::bindings::open_kind_OpenKind_Compartment,
 }
 
-impl TryFrom<u32> for OpenAnonKind {
+impl TryFrom<u32> for OpenKind {
     type Error = ();
 
-    fn try_from(val: u32) -> core::result::Result<OpenAnonKind, Self::Error> {
+    fn try_from(val: u32) -> core::result::Result<OpenKind, Self::Error> {
         match val {
-            crate::bindings::open_anon_kind_AnonKind_Pipe => Ok(Self::Pipe),
-            crate::bindings::open_anon_kind_AnonKind_SocketConnect => Ok(Self::SocketConnect),
-            crate::bindings::open_anon_kind_AnonKind_SocketBind => Ok(Self::SocketBind),
-            crate::bindings::open_anon_kind_AnonKind_SocketAccept => Ok(Self::SocketAccept),
-            crate::bindings::open_anon_kind_AnonKind_PtyServer => Ok(Self::PtyServer),
-            crate::bindings::open_anon_kind_AnonKind_PtyClient => Ok(Self::PtyClient),
+            crate::bindings::open_kind_OpenKind_Pipe => Ok(Self::Pipe),
+            crate::bindings::open_kind_OpenKind_SocketConnect => Ok(Self::SocketConnect),
+            crate::bindings::open_kind_OpenKind_SocketBind => Ok(Self::SocketBind),
+            crate::bindings::open_kind_OpenKind_SocketAccept => Ok(Self::SocketAccept),
+            crate::bindings::open_kind_OpenKind_PtyServer => Ok(Self::PtyServer),
+            crate::bindings::open_kind_OpenKind_PtyClient => Ok(Self::PtyClient),
+            crate::bindings::open_kind_OpenKind_Path => Ok(Self::Path),
+            crate::bindings::open_kind_OpenKind_Object => Ok(Self::Object),
+            crate::bindings::open_kind_OpenKind_Compartment => Ok(Self::Compartment),
+
             _ => Err(()),
         }
     }
 }
 
-impl From<OpenAnonKind> for u32 {
-    fn from(val: OpenAnonKind) -> u32 {
+impl From<OpenKind> for u32 {
+    fn from(val: OpenKind) -> u32 {
         match val {
-            OpenAnonKind::Pipe => crate::bindings::open_anon_kind_AnonKind_Pipe,
-            OpenAnonKind::SocketBind => crate::bindings::open_anon_kind_AnonKind_SocketBind,
-            OpenAnonKind::SocketConnect => crate::bindings::open_anon_kind_AnonKind_SocketConnect,
-            OpenAnonKind::SocketAccept => crate::bindings::open_anon_kind_AnonKind_SocketAccept,
-            OpenAnonKind::PtyServer => crate::bindings::open_anon_kind_AnonKind_PtyServer,
-            OpenAnonKind::PtyClient => crate::bindings::open_anon_kind_AnonKind_PtyClient,
+            OpenKind::Pipe => crate::bindings::open_kind_OpenKind_Pipe,
+            OpenKind::Path => crate::bindings::open_kind_OpenKind_Path,
+            OpenKind::Object => crate::bindings::open_kind_OpenKind_Object,
+            OpenKind::SocketConnect => crate::bindings::open_kind_OpenKind_SocketConnect,
+            OpenKind::SocketBind => crate::bindings::open_kind_OpenKind_SocketBind,
+            OpenKind::SocketAccept => crate::bindings::open_kind_OpenKind_SocketAccept,
+            OpenKind::PtyServer => crate::bindings::open_kind_OpenKind_PtyServer,
+            OpenKind::PtyClient => crate::bindings::open_kind_OpenKind_PtyClient,
+            OpenKind::Compartment => crate::bindings::open_kind_OpenKind_Compartment,
         }
     }
 }
@@ -435,31 +477,33 @@ impl From<core::net::IpAddr> for SocketAddress {
 
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_open_socket_bind(
-    mut addr: SocketAddress,
+    addr: SocketAddress,
     flags: u32,
     prot: ProtKind,
 ) -> Result<RawFd> {
+    let mut binding = crate::bindings::socket_bind_info {
+        addr: addr.0,
+        prot: prot as u32,
+    };
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::SocketBind.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::SocketBind.into(),
             flags,
-            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
-            core::mem::size_of::<crate::bindings::socket_address>(),
-            prot as u32,
+            ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::socket_bind_info>(),
         )
         .into()
     }
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_socket(flags: u32, prot: ProtKind) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket(flags: u32, _prot: ProtKind) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::SocketBind.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::SocketBind.into(),
             flags,
             core::ptr::null_mut(),
             0,
-            prot as u32,
         )
         .into()
     }
@@ -468,18 +512,21 @@ pub fn twz_rt_fd_open_socket(flags: u32, prot: ProtKind) -> Result<RawFd> {
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_socket_rebind(
     fd: RawFd,
-    mut addr: SocketAddress,
+    addr: SocketAddress,
     flags: u32,
     prot: ProtKind,
 ) -> Result<()> {
+    let mut binding = crate::bindings::socket_bind_info {
+        addr: addr.0,
+        prot: prot as u32,
+    };
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_reopen_anon(
+        RawTwzError::new(crate::bindings::twz_rt_fd_reopen(
             fd,
-            OpenAnonKind::SocketBind.into(),
+            OpenKind::SocketBind.into(),
             flags,
-            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
-            core::mem::size_of::<crate::bindings::socket_address>(),
-            prot as u32,
+            ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::socket_bind_info>(),
         ))
         .result()
     }
@@ -488,12 +535,11 @@ pub fn twz_rt_fd_socket_rebind(
 // Accept a connection on a bound socket file descriptor, creating a new file descriptor.
 pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::SocketAccept.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::SocketAccept.into(),
             flags,
             ((&mut fd) as *mut RawFd).cast(),
             core::mem::size_of::<RawFd>(),
-            crate::bindings::prot_kind_ProtKind_Stream,
         )
         .into()
     }
@@ -501,17 +547,20 @@ pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> 
 
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_open_socket_connect(
-    mut addr: SocketAddress,
+    addr: SocketAddress,
     flags: u32,
     prot: ProtKind,
 ) -> Result<RawFd> {
+    let mut binding = crate::bindings::socket_bind_info {
+        addr: addr.0,
+        prot: prot as u32,
+    };
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::SocketConnect.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::SocketConnect.into(),
             flags,
-            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
-            core::mem::size_of::<crate::bindings::socket_address>(),
-            prot as u32,
+            ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::socket_bind_info>(),
         )
         .into()
     }
@@ -520,46 +569,63 @@ pub fn twz_rt_fd_open_socket_connect(
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_socket_reconnect(
     fd: RawFd,
-    mut addr: SocketAddress,
+    addr: SocketAddress,
     flags: u32,
     prot: ProtKind,
 ) -> Result<()> {
+    let mut binding = crate::bindings::socket_bind_info {
+        addr: addr.0,
+        prot: prot as u32,
+    };
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_reopen_anon(
+        RawTwzError::new(crate::bindings::twz_rt_fd_reopen(
             fd,
-            OpenAnonKind::SocketConnect.into(),
+            OpenKind::SocketConnect.into(),
             flags,
-            ((&mut addr.0) as *mut crate::bindings::socket_address).cast(),
-            core::mem::size_of::<crate::bindings::socket_address>(),
-            prot as u32,
+            ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::socket_bind_info>(),
         ))
         .result()
     }
 }
 
 /// Open an PTY.
-pub fn twz_rt_fd_open_pty_server(mut id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_pty_server(id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+    let mut binding = crate::bindings::object_bind_info { id };
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::PtyServer.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::PtyServer.into(),
             flags,
-            ((&mut id) as *mut crate::bindings::objid).cast(),
-            core::mem::size_of::<crate::bindings::objid>(),
-            ProtKind::Stream as u32,
+            ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::object_bind_info>(),
         )
         .into()
     }
 }
 
 /// Open an PTY.
-pub fn twz_rt_fd_open_pty_client(mut id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_pty_client(id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
+    let mut binding = crate::bindings::object_bind_info { id };
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::PtyClient.into(),
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::PtyClient.into(),
             flags,
-            ((&mut id) as *mut crate::bindings::objid).cast(),
-            core::mem::size_of::<crate::bindings::objid>(),
-            ProtKind::Stream as u32,
+            ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::object_bind_info>(),
+        )
+        .into()
+    }
+}
+
+/// Open an anonymous file descriptor.
+pub fn twz_rt_fd_open_compartment(id: crate::bindings::objid, flags: u32) -> Result<RawFd> {
+    let mut binding = crate::bindings::object_bind_info { id };
+    unsafe {
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::Compartment.into(),
+            flags,
+            ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::object_bind_info>(),
         )
         .into()
     }
@@ -568,14 +634,8 @@ pub fn twz_rt_fd_open_pty_client(mut id: twizzler_types::ObjID, flags: u32) -> R
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_open_pipe(flags: u32) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open_anon(
-            OpenAnonKind::Pipe.into(),
-            flags,
-            core::ptr::null_mut(),
-            0,
-            crate::bindings::prot_kind_ProtKind_Stream,
-        )
-        .into()
+        crate::bindings::twz_rt_fd_open(OpenKind::Pipe.into(), flags, core::ptr::null_mut(), 0)
+            .into()
     }
 }
 
