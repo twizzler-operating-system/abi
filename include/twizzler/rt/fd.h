@@ -57,6 +57,7 @@ struct open_result {
 };
 
 enum open_kind {
+  OpenKind_KernelConsole,
   OpenKind_Object,
   OpenKind_Path,
   OpenKind_Pipe,

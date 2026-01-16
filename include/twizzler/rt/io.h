@@ -103,6 +103,11 @@ const uint32_t IO_REGISTER_TTL = 5;
 const uint32_t IO_REGISTER_READTIMEOUT = 6;
 const uint32_t IO_REGISTER_WRITETIMEOUT = 7;
 
+const uint32_t IO_REGISTER_STATUS = 8;
+const uint32_t IO_REGISTER_SIGNAL = 9;
+
+const uint64_t STATUS_FLAG_TERMINATED = (1ull << 32);
+
 const uint32_t SOCKET_FLAGS_NODELAY = 1;
 const uint32_t SOCKET_FLAGS_ONLYV6 = 2;
 

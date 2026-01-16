@@ -203,6 +203,68 @@ pub fn twz_rt_fd_enumerate_names(
     }
 }
 
+use crate::bindings::{
+    binding_info, descriptor, object_bind_info, objid, prot_kind, socket_address, socket_bind_info,
+};
+impl binding_info {
+    pub fn new_object_binding(fd: descriptor, kind: OpenKind, flags: u32, id: objid) -> Self {
+        let mut this = Self {
+            kind: kind.into(),
+            flags,
+            fd,
+            bind_data: [0; _],
+            bind_len: size_of::<object_bind_info>(),
+        };
+        let bind_info = object_bind_info { id };
+        let bind_info_bytes = &bind_info as *const _ as *const u8;
+        let slice =
+            unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<object_bind_info>()) };
+        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this
+    }
+
+    pub fn new_socket_binding(
+        fd: descriptor,
+        kind: OpenKind,
+        flags: u32,
+        addr: socket_address,
+        prot: prot_kind,
+    ) -> Self {
+        let mut this = Self {
+            kind: kind.into(),
+            flags,
+            fd,
+            bind_data: [0; _],
+            bind_len: size_of::<socket_bind_info>(),
+        };
+        let bind_info = socket_bind_info { addr, prot };
+        let bind_info_bytes = &bind_info as *const _ as *const u8;
+        let slice =
+            unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<socket_bind_info>()) };
+        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this
+    }
+
+    pub fn new_fd_binding(fd: descriptor, kind: OpenKind, flags: u32, bind_fd: descriptor) -> Self {
+        let mut this = Self {
+            kind: kind.into(),
+            flags,
+            fd,
+            bind_data: [0; _],
+            bind_len: size_of::<descriptor>(),
+        };
+        let bind_info_bytes = &bind_fd as *const _ as *const u8;
+        let slice =
+            unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<descriptor>()) };
+        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this
+    }
+}
+
+pub fn twz_rt_fd_read_binds(binds: &mut [binding_info]) -> usize {
+    unsafe { crate::bindings::twz_rt_fd_read_binds(binds.as_mut_ptr(), binds.len()) }
+}
+
 /// Open a file descriptor by name, as a C-string.
 pub fn twz_rt_fd_copen(
     name: &core::ffi::CStr,
@@ -315,6 +377,7 @@ pub enum OpenKind {
     PtyServer = crate::bindings::open_kind_OpenKind_PtyServer,
     PtyClient = crate::bindings::open_kind_OpenKind_PtyClient,
     Compartment = crate::bindings::open_kind_OpenKind_Compartment,
+    KernelConsole = crate::bindings::open_kind_OpenKind_KernelConsole,
 }
 
 impl TryFrom<u32> for OpenKind {
@@ -331,6 +394,7 @@ impl TryFrom<u32> for OpenKind {
             crate::bindings::open_kind_OpenKind_Path => Ok(Self::Path),
             crate::bindings::open_kind_OpenKind_Object => Ok(Self::Object),
             crate::bindings::open_kind_OpenKind_Compartment => Ok(Self::Compartment),
+            crate::bindings::open_kind_OpenKind_KernelConsole => Ok(Self::KernelConsole),
 
             _ => Err(()),
         }
@@ -349,6 +413,7 @@ impl From<OpenKind> for u32 {
             OpenKind::PtyServer => crate::bindings::open_kind_OpenKind_PtyServer,
             OpenKind::PtyClient => crate::bindings::open_kind_OpenKind_PtyClient,
             OpenKind::Compartment => crate::bindings::open_kind_OpenKind_Compartment,
+            OpenKind::KernelConsole => crate::bindings::open_kind_OpenKind_KernelConsole,
         }
     }
 }
@@ -632,10 +697,18 @@ pub fn twz_rt_fd_open_compartment(id: crate::bindings::objid, flags: u32) -> Res
 }
 
 /// Open an anonymous file descriptor.
-pub fn twz_rt_fd_open_pipe(flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_pipe(id: Option<crate::bindings::objid>, flags: u32) -> Result<RawFd> {
+    let mut binding = crate::bindings::object_bind_info {
+        id: id.unwrap_or(0),
+    };
     unsafe {
-        crate::bindings::twz_rt_fd_open(OpenKind::Pipe.into(), flags, core::ptr::null_mut(), 0)
-            .into()
+        crate::bindings::twz_rt_fd_open(
+            OpenKind::Pipe.into(),
+            flags,
+            ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::object_bind_info>(),
+        )
+        .into()
     }
 }
 

@@ -20,6 +20,8 @@ pub mod arch;
 #[cfg(not(feature = "kernel"))]
 pub mod debug;
 #[cfg(not(feature = "kernel"))]
+pub mod exec;
+#[cfg(not(feature = "kernel"))]
 pub mod fd;
 #[cfg(not(feature = "kernel"))]
 pub mod info;
