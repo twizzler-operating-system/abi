@@ -213,13 +213,13 @@ impl binding_info {
             flags,
             fd,
             bind_data: [0; _],
-            bind_len: size_of::<object_bind_info>(),
+            bind_len: size_of::<object_bind_info>() as u32,
         };
         let bind_info = object_bind_info { id };
         let bind_info_bytes = &bind_info as *const _ as *const u8;
         let slice =
             unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<object_bind_info>()) };
-        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this.bind_data[0..(this.bind_len as usize)].copy_from_slice(slice);
         this
     }
 
@@ -235,13 +235,13 @@ impl binding_info {
             flags,
             fd,
             bind_data: [0; _],
-            bind_len: size_of::<socket_bind_info>(),
+            bind_len: size_of::<socket_bind_info>() as u32,
         };
         let bind_info = socket_bind_info { addr, prot };
         let bind_info_bytes = &bind_info as *const _ as *const u8;
         let slice =
             unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<socket_bind_info>()) };
-        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this.bind_data[0..(this.bind_len as usize)].copy_from_slice(slice);
         this
     }
 
@@ -251,12 +251,12 @@ impl binding_info {
             flags,
             fd,
             bind_data: [0; _],
-            bind_len: size_of::<descriptor>(),
+            bind_len: size_of::<descriptor>() as u32,
         };
         let bind_info_bytes = &bind_fd as *const _ as *const u8;
         let slice =
             unsafe { core::slice::from_raw_parts(bind_info_bytes, size_of::<descriptor>()) };
-        this.bind_data[0..this.bind_len].copy_from_slice(slice);
+        this.bind_data[0..(this.bind_len as usize)].copy_from_slice(slice);
         this
     }
 }
@@ -786,4 +786,101 @@ pub fn twz_rt_fd_shutdown(fd: RawFd, read: bool, write: bool) -> Result<()> {
 /// Close a file descriptor. If the fd is already closed, or invalid, this function has no effect.
 pub fn twz_rt_fd_close(fd: RawFd) {
     unsafe { crate::bindings::twz_rt_fd_close(fd) }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
+#[repr(u32)]
+pub enum NameRoot {
+    Root = crate::bindings::name_root_NameRoot_Root,
+    Home = crate::bindings::name_root_NameRoot_Home,
+    Current = crate::bindings::name_root_NameRoot_Current,
+    Temp = crate::bindings::name_root_NameRoot_Temp,
+    Exe = crate::bindings::name_root_NameRoot_Exe,
+}
+
+impl From<u32> for NameRoot {
+    fn from(value: u32) -> Self {
+        match value {
+            crate::bindings::name_root_NameRoot_Root => NameRoot::Root,
+            crate::bindings::name_root_NameRoot_Home => NameRoot::Home,
+            crate::bindings::name_root_NameRoot_Current => NameRoot::Current,
+            crate::bindings::name_root_NameRoot_Temp => NameRoot::Temp,
+            crate::bindings::name_root_NameRoot_Exe => NameRoot::Exe,
+            _ => panic!("invalid NameRoot value"),
+        }
+    }
+}
+
+pub fn twz_rt_get_nameroot(root: NameRoot, buf: &mut [u8]) -> Result<usize> {
+    unsafe {
+        crate::bindings::twz_rt_get_nameroot(root as u32, buf.as_mut_ptr().cast(), buf.len()).into()
+    }
+}
+
+pub fn twz_rt_set_nameroot(root: NameRoot, buf: &[u8]) -> Result<()> {
+    let res = unsafe {
+        crate::bindings::twz_rt_set_nameroot(root as u32, buf.as_ptr().cast(), buf.len())
+    };
+    let r = RawTwzError::new(res);
+    if r.is_success() {
+        Ok(())
+    } else {
+        Err(r.error())
+    }
+}
+
+#[derive(Default, Copy, Clone)]
+#[repr(u32)]
+pub enum NameResolver {
+    #[default]
+    Default = crate::bindings::name_resolver_NameResolver_Default,
+}
+
+impl From<u32> for NameResolver {
+    fn from(value: u32) -> Self {
+        match value {
+            crate::bindings::name_resolver_NameResolver_Default => NameResolver::Default,
+            _ => panic!("invalid NameResolver value"),
+        }
+    }
+}
+
+pub fn twz_rt_resolve_name(
+    resolver: NameResolver,
+    name: impl AsRef<str>,
+) -> Result<crate::object::ObjID> {
+    let name = name.as_ref().as_bytes();
+    let res = unsafe {
+        crate::bindings::twz_rt_resolve_name(resolver as u32, name.as_ptr().cast(), name.len())
+    };
+    let r = RawTwzError::new(res.err);
+    if r.is_success() {
+        Ok(res.val.into())
+    } else {
+        Err(r.error())
+    }
+}
+
+pub fn twz_rt_canon_name(
+    resolver: NameResolver,
+    name: impl AsRef<str>,
+    out_name: &mut [u8],
+) -> Result<usize> {
+    let name = name.as_ref().as_bytes();
+    let mut out_len = out_name.len();
+    let res = unsafe {
+        crate::bindings::twz_rt_canon_name(
+            resolver as u32,
+            name.as_ptr().cast(),
+            name.len(),
+            out_name.as_mut_ptr().cast(),
+            &mut out_len,
+        )
+    };
+    let r = RawTwzError::new(res);
+    if r.is_success() {
+        Ok(out_len)
+    } else {
+        Err(r.error())
+    }
 }

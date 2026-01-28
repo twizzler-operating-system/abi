@@ -174,9 +174,9 @@ struct binding_info {
     enum open_kind kind;
     descriptor fd;
     fd_flags flags;
-    size_t bind_len;
+    uint32_t bind_len;
     uint8_t bind_data[BIND_DATA_MAX];
-};
+} __attribute__ ((aligned (16)));
 
 extern size_t twz_rt_fd_read_binds(struct binding_info *binds, size_t nr_binds);
 
@@ -203,6 +203,26 @@ extern twz_error twz_rt_fd_symlink(const char *name, size_t name_len, const char
 
 /// Read symlink.
 extern twz_error twz_rt_fd_readlink(const char *name, size_t name_len, char *buf, size_t buf_len, uint64_t *out_buf_len);
+
+enum name_root {
+    NameRoot_Root,
+    NameRoot_Home,
+    NameRoot_Current,
+    NameRoot_Temp,
+    NameRoot_Exe,
+};
+
+extern twz_error twz_rt_set_nameroot(enum name_root root, const char *path, size_t path_len);
+
+extern struct io_result twz_rt_get_nameroot(enum name_root root, char *path, size_t path_len);
+
+enum name_resolver {
+    NameResolver_Default,
+};
+
+extern struct objid_result twz_rt_resolve_name(enum name_resolver resolver, const char *name, size_t name_len);
+
+extern twz_error twz_rt_canon_name(enum name_resolver resolver, const char *name, size_t name_len, char *out, size_t *out_len);
 
 #ifdef __cplusplus
 }
