@@ -418,7 +418,7 @@ impl From<OpenKind> for u32 {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 #[repr(transparent)]
 pub struct SocketAddress(pub crate::bindings::socket_address);
 
@@ -834,12 +834,14 @@ pub fn twz_rt_set_nameroot(root: NameRoot, buf: &[u8]) -> Result<()> {
 pub enum NameResolver {
     #[default]
     Default = crate::bindings::name_resolver_NameResolver_Default,
+    Socket = crate::bindings::name_resolver_NameResolver_Socket,
 }
 
 impl From<u32> for NameResolver {
     fn from(value: u32) -> Self {
         match value {
             crate::bindings::name_resolver_NameResolver_Default => NameResolver::Default,
+            crate::bindings::name_resolver_NameResolver_Socket => NameResolver::Socket,
             _ => panic!("invalid NameResolver value"),
         }
     }
@@ -880,6 +882,29 @@ pub fn twz_rt_canon_name(
     let r = RawTwzError::new(res);
     if r.is_success() {
         Ok(out_len)
+    } else {
+        Err(r.error())
+    }
+}
+
+pub fn twz_rt_socket_names(
+    name: impl AsRef<str>,
+    out_addrs: &mut [SocketAddress],
+) -> Result<usize> {
+    let name = name.as_ref().as_bytes();
+    let mut out_len = out_addrs.len() * size_of::<SocketAddress>();
+    let res = unsafe {
+        crate::bindings::twz_rt_canon_name(
+            NameResolver::Socket as u32,
+            name.as_ptr().cast(),
+            name.len(),
+            out_addrs.as_mut_ptr().cast(),
+            &mut out_len,
+        )
+    };
+    let r = RawTwzError::new(res);
+    if r.is_success() {
+        Ok(out_len / size_of::<SocketAddress>())
     } else {
         Err(r.error())
     }

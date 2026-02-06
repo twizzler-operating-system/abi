@@ -95,6 +95,15 @@ impl IoCtx {
         self.0.timeout = timeout.into();
         self
     }
+
+    pub fn nonblocking(mut self, val: bool) -> Self {
+        if val {
+            self.0.flags |= IoFlags::NONBLOCKING.bits();
+        } else {
+            self.0.flags &= !IoFlags::NONBLOCKING.bits();
+        }
+        self
+    }
 }
 
 /// Read a file descriptor into a buffer, up to buf.len() bytes. On success, returns the number of
