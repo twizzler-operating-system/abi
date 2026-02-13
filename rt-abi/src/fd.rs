@@ -256,6 +256,19 @@ pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
     }
 }
 
+/// Rename a name in the namespace.
+pub fn twz_rt_fd_rename(old_name: &str, new_name: &str) -> Result<()> {
+    unsafe {
+        RawTwzError::new(crate::bindings::twz_rt_fd_rename(
+            old_name.as_ptr().cast(),
+            old_name.len(),
+            new_name.as_ptr().cast(),
+            new_name.len(),
+        ))
+        .result()
+    }
+}
+
 pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
     let mut len: u64 = 0;
     unsafe {
