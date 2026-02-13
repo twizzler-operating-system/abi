@@ -2,12 +2,10 @@
 
 /// Type for exit code.
 pub type ExitCode = crate::bindings::exit_code;
-#[cfg(not(feature = "kernel"))]
 use crate::error::{GenericError, TwzError};
 
 /// Exit with the provided error code. If the main thread for a program
 /// exits, the remaining threads will exit as well.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_exit(code: ExitCode) -> ! {
     unsafe {
         crate::bindings::twz_rt_exit(code);
@@ -16,7 +14,6 @@ pub fn twz_rt_exit(code: ExitCode) -> ! {
 }
 
 /// Abort execution due to unrecoverable language error.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_abort() -> ! {
     unsafe {
         crate::bindings::twz_rt_abort();
@@ -27,7 +24,6 @@ pub fn twz_rt_abort() -> ! {
 /// Call this before calling main, after initializing the runtime.
 /// If this function returns None, then call main. Otherwise, act
 /// as if main returned the provided [ExitCode].
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_pre_main_hook() -> Option<ExitCode> {
     unsafe { crate::bindings::twz_rt_pre_main_hook().into() }
 }
@@ -44,7 +40,6 @@ impl From<crate::bindings::option_exit_code> for Option<ExitCode> {
 }
 
 /// Call this after return from main, before running destructors.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_post_main_hook() {
     unsafe {
         crate::bindings::twz_rt_post_main_hook();
@@ -52,7 +47,6 @@ pub fn twz_rt_post_main_hook() {
 }
 
 /// Called by security context code on compartment entry
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_cross_compartment_entry() -> Result<(), TwzError> {
     unsafe {
         if crate::bindings::twz_rt_cross_compartment_entry() {
@@ -81,7 +75,6 @@ unsafe impl Send for CompartmentInitInfo {}
 unsafe impl Sync for CompartmentInitInfo {}
 
 /// The entry point for the runtime. Not for public use.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_runtime_entry(
     info: *const RuntimeInfo,
     std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn,
@@ -92,7 +85,7 @@ pub fn twz_rt_runtime_entry(
     }
 }
 
-#[cfg(all(feature = "rt0", not(feature = "kernel")))]
+#[cfg(all(feature = "rt0"))]
 pub mod rt0 {
     //! rt0 defines a collection of functions that the basic Rust ABI expects to be defined by some
     //! part of the C runtime:

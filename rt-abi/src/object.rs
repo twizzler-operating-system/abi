@@ -4,11 +4,15 @@ use core::{
     ffi::c_void,
     fmt::{LowerHex, UpperHex},
     mem::MaybeUninit,
-    sync::atomic::{AtomicU64, Ordering},
+    sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
+use bitflags::bitflags;
+
 use crate::{
-    bindings::{object_cmd, twz_rt_object_cmd, LEN_MUL, OBJECT_CMD_DELETE},
+    bindings::{
+        object_cmd, object_tie, twz_rt_object_cmd, LEN_MUL, OBJECT_CMD_DELETE, OBJECT_CMD_SYNC,
+    },
     error::{RawTwzError, TwzError},
     Result,
 };
@@ -89,7 +93,6 @@ impl core::fmt::Debug for ObjID {
 #[repr(transparent)]
 pub struct ObjectHandle(pub(crate) crate::bindings::object_handle);
 
-#[cfg(not(feature = "kernel"))]
 impl core::fmt::Debug for ObjectHandle {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(
@@ -128,6 +131,7 @@ bitflags::bitflags! {
 #[repr(u32)]
 pub enum ObjectCmd {
     Delete = OBJECT_CMD_DELETE,
+    Sync = OBJECT_CMD_SYNC,
 }
 
 impl TryFrom<object_cmd> for ObjectCmd {
@@ -136,6 +140,7 @@ impl TryFrom<object_cmd> for ObjectCmd {
     fn try_from(value: object_cmd) -> core::result::Result<Self, Self::Error> {
         match value {
             OBJECT_CMD_DELETE => Ok(ObjectCmd::Delete),
+            OBJECT_CMD_SYNC => Ok(ObjectCmd::Sync),
             _ => Err(TwzError::INVALID_ARGUMENT),
         }
     }
@@ -203,7 +208,6 @@ impl ObjectHandle {
         Self(raw)
     }
 
-    #[cfg(not(feature = "kernel"))]
     /// Modify an object.
     pub fn cmd(&self, cmd: ObjectCmd, arg: u64) -> Result<()> {
         let err =
@@ -240,7 +244,6 @@ impl ObjectHandle {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 impl Clone for ObjectHandle {
     fn clone(&self) -> Self {
         unsafe {
@@ -259,7 +262,6 @@ impl Clone for ObjectHandle {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 impl Drop for ObjectHandle {
     fn drop(&mut self) {
         unsafe {
@@ -284,7 +286,6 @@ impl AsRef<ObjectHandle> for ObjectHandle {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 impl From<Result<ObjectHandle>> for crate::bindings::map_result {
     fn from(value: Result<ObjectHandle>) -> Self {
         match value {
@@ -300,7 +301,6 @@ impl From<Result<ObjectHandle>> for crate::bindings::map_result {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 impl From<crate::bindings::map_result> for Result<ObjectHandle> {
     fn from(value: crate::bindings::map_result) -> Self {
         let raw = RawTwzError::new(value.error);
@@ -313,12 +313,10 @@ impl From<crate::bindings::map_result> for Result<ObjectHandle> {
 }
 
 /// Map an object given by ID `id` with the given flags.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle> {
     unsafe { crate::bindings::twz_rt_map_object(id.raw(), flags.bits()).into() }
 }
 
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
     use crate::error::ObjectError;
 
@@ -329,7 +327,6 @@ pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
     Ok(ObjectHandle(res))
 }
 
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_resolve_fot(
     this: &ObjectHandle,
     idx: u64,
@@ -373,7 +370,6 @@ impl From<crate::bindings::u32_result> for Result<u32> {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u32> {
     unsafe {
         let res = crate::bindings::twz_rt_insert_fot(
@@ -384,7 +380,6 @@ pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u32> {
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_resolve_fot_local(
     start: *mut u8,
     idx: u64,
@@ -398,17 +393,14 @@ pub fn twz_rt_resolve_fot_local(
     }
 }
 
-#[cfg(not(feature = "kernel"))]
 use crate::bindings::release_flags;
 
 /// Release a handle. Should be only called by the ObjectHandle drop call.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_release_handle(handle: &mut ObjectHandle, flags: release_flags) {
     unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0, flags) }
 }
 
 /// Update a handle.
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_update_handle(handle: &mut ObjectHandle) -> Result<()> {
     let r = unsafe { crate::bindings::twz_rt_update_handle(&mut handle.0) };
     let r = RawTwzError::new(r);
@@ -420,7 +412,6 @@ pub fn twz_rt_update_handle(handle: &mut ObjectHandle) -> Result<()> {
 }
 
 #[deprecated]
-#[cfg(not(feature = "kernel"))]
 pub fn twz_rt_map_two_objects(
     id1: ObjID,
     flags1: MapFlags,
@@ -543,3 +534,193 @@ pub struct MetaExt {
 
 pub const MEXT_EMPTY: MetaExtTag = MetaExtTag(0);
 pub const MEXT_SIZED: MetaExtTag = MetaExtTag(1);
+
+/// The maximum size of an object, including null page and meta page(s).
+pub const MAX_SIZE: usize = 1024 * 1024 * 1024;
+/// The size of the null page.
+pub const NULLPAGE_SIZE: usize = 0x1000;
+
+#[repr(C)]
+pub struct FotEntry {
+    pub values: [u64; 2],
+    pub resolver: u64,
+    pub flags: AtomicU32,
+}
+
+bitflags::bitflags! {
+    #[repr(C)]
+    #[derive(Copy, Clone, Debug, PartialEq, PartialOrd, Ord, Eq, Hash)]
+    pub struct FotFlags : u32 {
+        const ALLOCATED = 1;
+        const ACTIVE = 2;
+        const DELETED = 4;
+        const RESOLVER = 8;
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Default)]
+#[repr(C)]
+/// Specifications for an object-copy from a source object. The specified ranges are
+/// source:[src_start, src_start + len) copied to `<some unspecified destination
+/// object>:[dest_start, dest_start + len)`. Each range must start within an object, and end within
+/// the object.
+pub struct ObjectSource {
+    /// The ID of the source object, or zero for filling destination with zero.
+    pub id: ObjID,
+    /// The offset into the source object to start the copy. If id is zero, this field is reserved
+    /// for future use.
+    pub src_start: u64,
+    /// The offset into the dest object to start the copy or zero.
+    pub dest_start: u64,
+    /// The length of the copy or zero.
+    pub len: usize,
+}
+
+impl From<ObjectSource> for crate::bindings::object_source {
+    fn from(value: ObjectSource) -> Self {
+        Self {
+            id: value.id.raw(),
+            src_start: value.src_start,
+            dest_start: value.dest_start,
+            len: value.len as u64,
+        }
+    }
+}
+
+impl ObjectSource {
+    /// Construct a new ObjectSource.
+    pub fn new_copy(id: ObjID, src_start: u64, dest_start: u64, len: usize) -> Self {
+        Self {
+            id,
+            src_start,
+            dest_start,
+            len,
+        }
+    }
+
+    /// Construct a new ObjectSource.
+    pub fn new_zero(dest_start: u64, len: usize) -> Self {
+        Self {
+            id: ObjID::new(0),
+            src_start: 0,
+            dest_start,
+            len,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Default)]
+#[repr(C)]
+/// The backing memory type for this object. Currently doesn't do anything.
+pub enum BackingType {
+    /// The default, let the kernel decide based on the [LifetimeType] of the object.
+    #[default]
+    Normal = 0,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Default)]
+#[repr(C)]
+/// The base lifetime type of the object. Note that this does not ensure that the object is stored
+/// in a specific type of memory, the kernel is allowed to migrate objects with the Normal
+/// [BackingType] as it sees fit. For more information on object lifetime, see [the book](https://twizzler-operating-system.github.io/nightly/book/object_lifetime.html).
+pub enum LifetimeType {
+    /// This object is volatile, and is expected to be deleted after a power cycle.
+    #[default]
+    Volatile = 0,
+    /// This object is persistent, and should be deleted only after an explicit delete call.
+    Persistent = 1,
+}
+
+bitflags! {
+    /// Flags to pass to the object create system call.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Default)]
+    pub struct ObjectCreateFlags: u32 {
+        const DELETE = 1;
+        const NO_NONCE = 2;
+    }
+}
+
+bitflags! {
+    /// Flags controlling how a particular object tie operates.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+    pub struct CreateTieFlags: u32 {
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[repr(C)]
+/// Full object creation specification, minus ties.
+pub struct ObjectCreate {
+    pub kuid: ObjID,
+    pub bt: BackingType,
+    pub lt: LifetimeType,
+    pub flags: ObjectCreateFlags,
+    pub def_prot: Protections,
+}
+impl ObjectCreate {
+    /// Build a new object create specification.
+    pub fn new(
+        bt: BackingType,
+        lt: LifetimeType,
+        kuid: Option<ObjID>,
+        flags: ObjectCreateFlags,
+        def_prot: Protections,
+    ) -> Self {
+        Self {
+            kuid: kuid.unwrap_or_else(|| ObjID::new(0)),
+            bt,
+            lt,
+            flags,
+            def_prot,
+        }
+    }
+}
+
+impl Default for ObjectCreate {
+    fn default() -> Self {
+        Self::new(
+            BackingType::Normal,
+            LifetimeType::Volatile,
+            None,
+            ObjectCreateFlags::empty(),
+            Protections::all(),
+        )
+    }
+}
+
+impl From<ObjectCreate> for crate::bindings::object_create {
+    fn from(value: ObjectCreate) -> Self {
+        Self {
+            kuid: value.kuid.0,
+            lifetime: value.lt as u32,
+            backing: value.bt as u32,
+            flags: value.flags.bits(),
+            prot: value.def_prot.bits() as u32,
+        }
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
+#[repr(C)]
+/// A specification of ties to create.
+/// (see [the book](https://twizzler-operating-system.github.io/nightly/book/object_lifetime.html) for more information on ties).
+pub struct CreateTieSpec {
+    pub id: ObjID,
+    pub flags: CreateTieFlags,
+}
+
+impl CreateTieSpec {
+    /// Create a new CreateTieSpec.
+    pub fn new(id: ObjID, flags: CreateTieFlags) -> Self {
+        Self { id, flags }
+    }
+}
+
+impl From<CreateTieSpec> for object_tie {
+    fn from(value: CreateTieSpec) -> Self {
+        Self {
+            id: value.id.raw(),
+            flags: value.flags.bits(),
+        }
+    }
+}

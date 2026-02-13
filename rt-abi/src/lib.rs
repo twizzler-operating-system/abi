@@ -13,25 +13,15 @@ pub mod core;
 #[allow(unused_imports)]
 pub mod object;
 
-#[cfg(not(feature = "kernel"))]
 pub mod alloc;
-#[cfg(not(feature = "kernel"))]
 pub mod arch;
-#[cfg(not(feature = "kernel"))]
 pub mod debug;
-#[cfg(not(feature = "kernel"))]
 pub mod exec;
-#[cfg(not(feature = "kernel"))]
 pub mod fd;
-#[cfg(not(feature = "kernel"))]
 pub mod info;
-#[cfg(not(feature = "kernel"))]
 pub mod io;
-#[cfg(not(feature = "kernel"))]
 pub mod random;
-#[cfg(not(feature = "kernel"))]
 pub mod thread;
-#[cfg(not(feature = "kernel"))]
 pub mod time;
 
 #[allow(

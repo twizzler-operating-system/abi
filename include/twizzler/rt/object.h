@@ -2,6 +2,7 @@
 
 #include "types.h"
 #include "handle.h"
+#include <stdint.h>
 #include <stddef.h>
 
 #ifdef __cplusplus
@@ -38,6 +39,28 @@ const release_flags RELEASE_NO_CACHE = 1;
 /// Create a new runtime (volatile, tied to this runtime) object.
 extern struct objid_result twz_rt_create_rtobj(void);
 
+struct object_source {
+    objid id;
+    uint64_t src_start;
+    uint64_t dest_start;
+    uint64_t len;
+};
+
+struct object_tie {
+    objid id;
+    uint32_t flags;
+};
+
+struct object_create {
+    objid kuid;
+    uint32_t lifetime;
+    uint32_t backing;
+    uint32_t flags;
+    uint32_t prot;
+};
+
+extern struct objid_result twz_rt_create_object(const struct object_create *spec, const struct object_source *sources, size_t nr_sources, const struct object_tie *ties, size_t nr_ties, const char *name, size_t namelen);
+
 /// Map an object with a given ID and flags.
 extern struct map_result twz_rt_map_object(objid id, map_flags flags);
 /// Release an object handle. After calling this, the handle may not be used.
@@ -46,6 +69,7 @@ extern void twz_rt_release_handle(struct object_handle *handle, release_flags fl
 typedef uint32_t object_cmd;
 
 const object_cmd OBJECT_CMD_DELETE = 1;
+const object_cmd OBJECT_CMD_SYNC = 2;
 
 /// Modify an object.
 extern twz_error twz_rt_object_cmd(struct object_handle *handle, object_cmd cmd, uint64_t arg);
