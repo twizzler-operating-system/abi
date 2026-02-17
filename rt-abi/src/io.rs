@@ -4,7 +4,7 @@
 use crate::{
     error::RawTwzError,
     fd::{RawFd, SocketAddress},
-    Result,
+    nk, Result,
 };
 
 bitflags::bitflags! {
@@ -110,7 +110,10 @@ impl IoCtx {
 /// bytes actually read, which may be fewer than requested.
 pub fn twz_rt_fd_pread(fd: RawFd, buf: &mut [u8], ctx: &mut IoCtx) -> Result<usize> {
     unsafe {
-        crate::bindings::twz_rt_fd_pread(fd, buf.as_mut_ptr().cast(), buf.len(), &mut ctx.0).into()
+        nk!(
+            crate::bindings::twz_rt_fd_pread(fd, buf.as_mut_ptr().cast(), buf.len(), &mut ctx.0)
+                .into()
+        )
     }
 }
 
@@ -118,7 +121,10 @@ pub fn twz_rt_fd_pread(fd: RawFd, buf: &mut [u8], ctx: &mut IoCtx) -> Result<usi
 /// number of bytes actually written, which may be fewer than requested.
 pub fn twz_rt_fd_pwrite(fd: RawFd, buf: &[u8], ctx: &mut IoCtx) -> Result<usize> {
     unsafe {
-        crate::bindings::twz_rt_fd_pwrite(fd, buf.as_ptr().cast(), buf.len(), &mut ctx.0).into()
+        nk!(
+            crate::bindings::twz_rt_fd_pwrite(fd, buf.as_ptr().cast(), buf.len(), &mut ctx.0)
+                .into()
+        )
     }
 }
 
@@ -129,7 +135,7 @@ pub fn twz_rt_fd_seek(fd: RawFd, seek: SeekFrom) -> Result<usize> {
         SeekFrom::End(s) => (crate::bindings::WHENCE_END, s),
         SeekFrom::Current(s) => (crate::bindings::WHENCE_CURRENT, s),
     };
-    unsafe { crate::bindings::twz_rt_fd_seek(fd, whence, off).into() }
+    unsafe { nk!(crate::bindings::twz_rt_fd_seek(fd, whence, off).into()) }
 }
 
 #[derive(Copy, Clone)]
@@ -188,13 +194,13 @@ pub fn twz_rt_fd_pread_from(
 ) -> Result<(usize, Endpoint)> {
     let mut endpoint = core::mem::MaybeUninit::uninit();
     unsafe {
-        let len: Result<_> = crate::bindings::twz_rt_fd_pread_from(
+        let len: Result<_> = nk!(crate::bindings::twz_rt_fd_pread_from(
             fd,
             buf.as_mut_ptr().cast(),
             buf.len(),
             &mut ctx.0,
             endpoint.as_mut_ptr(),
-        )
+        ))
         .into();
         let len = len?;
         Ok((len, endpoint.assume_init().into()))
@@ -210,13 +216,13 @@ pub fn twz_rt_fd_pwrite_to(
     mut ep: Endpoint,
 ) -> Result<usize> {
     unsafe {
-        crate::bindings::twz_rt_fd_pwrite_to(
+        nk!(crate::bindings::twz_rt_fd_pwrite_to(
             fd,
             buf.as_ptr().cast(),
             buf.len(),
             &mut ctx.0,
             &mut ep.0,
-        )
+        ))
         .into()
     }
 }
@@ -229,7 +235,9 @@ pub type IoSlice = crate::bindings::io_vec;
 /// position. If the file descriptor refers to a non-seekable file, and offset is Some, this
 /// function returns an error.
 pub fn twz_rt_fd_preadv(fd: RawFd, ios: &[IoSlice], ctx: &mut IoCtx) -> Result<usize> {
-    unsafe { crate::bindings::twz_rt_fd_pwritev(fd, ios.as_ptr(), ios.len(), &mut ctx.0).into() }
+    unsafe {
+        nk!(crate::bindings::twz_rt_fd_pwritev(fd, ios.as_ptr(), ios.len(), &mut ctx.0).into())
+    }
 }
 
 /// Write multiple buffers into a file descriptor. On success, returns the number of bytes actually
@@ -237,18 +245,20 @@ pub fn twz_rt_fd_preadv(fd: RawFd, ios: &[IoSlice], ctx: &mut IoCtx) -> Result<u
 /// internal position. If the file descriptor refers to a non-seekable file, and offset is Some,
 /// this function returns an error.
 pub fn twz_rt_fd_pwritev(fd: RawFd, ios: &[IoSlice], ctx: &mut IoCtx) -> Result<usize> {
-    unsafe { crate::bindings::twz_rt_fd_pwritev(fd, ios.as_ptr(), ios.len(), &mut ctx.0).into() }
+    unsafe {
+        nk!(crate::bindings::twz_rt_fd_pwritev(fd, ios.as_ptr(), ios.len(), &mut ctx.0).into())
+    }
 }
 
 pub fn twz_rt_fd_get_config<T>(fd: RawFd, reg: u32) -> Result<T> {
     let mut val = core::mem::MaybeUninit::<T>::uninit();
     let e = unsafe {
-        crate::bindings::twz_rt_fd_get_config(
+        nk!(crate::bindings::twz_rt_fd_get_config(
             fd,
             reg,
             val.as_mut_ptr().cast(),
             core::mem::size_of::<T>(),
-        )
+        ))
     };
     let raw = RawTwzError::new(e);
     if !raw.is_success() {
@@ -259,12 +269,12 @@ pub fn twz_rt_fd_get_config<T>(fd: RawFd, reg: u32) -> Result<T> {
 
 pub fn twz_rt_fd_set_config<T>(fd: RawFd, reg: u32, val: T) -> Result<()> {
     let e = unsafe {
-        crate::bindings::twz_rt_fd_set_config(
+        nk!(crate::bindings::twz_rt_fd_set_config(
             fd,
             reg,
             ((&val) as *const T).cast(),
             core::mem::size_of::<T>(),
-        )
+        ))
     };
     let raw = RawTwzError::new(e);
     if !raw.is_success() {

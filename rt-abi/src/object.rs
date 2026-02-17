@@ -11,10 +11,11 @@ use bitflags::bitflags;
 
 use crate::{
     bindings::{
-        object_cmd, object_tie, twz_rt_object_cmd, LEN_MUL, OBJECT_CMD_DELETE, OBJECT_CMD_SYNC,
+        object_cmd, object_create, object_tie, sync_info, twz_rt_object_cmd, LEN_MUL,
+        OBJECT_CMD_DELETE, OBJECT_CMD_SYNC, OBJECT_CMD_UPDATE,
     },
-    error::{RawTwzError, TwzError},
-    Result,
+    error::{RawTwzError, ResourceError, TwzError},
+    nk, Result,
 };
 
 /// An object ID.
@@ -132,6 +133,7 @@ bitflags::bitflags! {
 pub enum ObjectCmd {
     Delete = OBJECT_CMD_DELETE,
     Sync = OBJECT_CMD_SYNC,
+    Update = OBJECT_CMD_UPDATE,
 }
 
 impl TryFrom<object_cmd> for ObjectCmd {
@@ -141,6 +143,7 @@ impl TryFrom<object_cmd> for ObjectCmd {
         match value {
             OBJECT_CMD_DELETE => Ok(ObjectCmd::Delete),
             OBJECT_CMD_SYNC => Ok(ObjectCmd::Sync),
+            OBJECT_CMD_UPDATE => Ok(ObjectCmd::Update),
             _ => Err(TwzError::INVALID_ARGUMENT),
         }
     }
@@ -209,9 +212,14 @@ impl ObjectHandle {
     }
 
     /// Modify an object.
-    pub fn cmd(&self, cmd: ObjectCmd, arg: u64) -> Result<()> {
-        let err =
-            unsafe { twz_rt_object_cmd(&self.0 as *const _ as *mut _, cmd as object_cmd, arg) };
+    pub fn cmd<T>(&self, cmd: ObjectCmd, arg: *mut T) -> Result<()> {
+        let err = unsafe {
+            nk!(twz_rt_object_cmd(
+                &self.0 as *const _ as *mut _,
+                cmd as object_cmd,
+                arg.cast()
+            ))
+        };
         let raw = RawTwzError::new(err);
         if raw.is_success() {
             Ok(())
@@ -255,7 +263,7 @@ impl Clone for ObjectHandle {
             // The above link also justifies the following behavior. If our count gets this high, we
             // have probably run into a problem somewhere.
             if old_count >= i64::MAX as u64 {
-                crate::core::twz_rt_abort();
+                nk!(crate::core::twz_rt_abort());
             }
         }
         Self(self.0)
@@ -276,7 +284,7 @@ impl Drop for ObjectHandle {
         // This fence is needed to prevent reordering of the use and deletion
         // of the data.
         core::sync::atomic::fence(Ordering::Acquire);
-        twz_rt_release_handle(self, 0);
+        nk!(twz_rt_release_handle(self, 0));
     }
 }
 
@@ -314,13 +322,17 @@ impl From<crate::bindings::map_result> for Result<ObjectHandle> {
 
 /// Map an object given by ID `id` with the given flags.
 pub fn twz_rt_map_object(id: ObjID, flags: MapFlags) -> Result<ObjectHandle> {
-    unsafe { crate::bindings::twz_rt_map_object(id.raw(), flags.bits()).into() }
+    unsafe { nk!(crate::bindings::twz_rt_map_object(id.raw(), flags.bits()).into()) }
 }
 
 pub fn twz_rt_get_object_handle(ptr: *const u8) -> Result<ObjectHandle> {
     use crate::error::ObjectError;
 
-    let res = unsafe { crate::bindings::twz_rt_get_object_handle((ptr as *mut u8).cast()) };
+    let res = unsafe {
+        nk!(crate::bindings::twz_rt_get_object_handle(
+            (ptr as *mut u8).cast()
+        ))
+    };
     if res.id == 0 {
         return Err(TwzError::Object(ObjectError::NotMapped));
     }
@@ -334,12 +346,12 @@ pub fn twz_rt_resolve_fot(
     flags: MapFlags,
 ) -> Result<ObjectHandle> {
     unsafe {
-        crate::bindings::twz_rt_resolve_fot(
+        nk!(crate::bindings::twz_rt_resolve_fot(
             &this.0 as *const _ as *mut _,
             idx,
             valid_len,
             flags.bits(),
-        )
+        ))
         .into()
     }
 }
@@ -372,10 +384,10 @@ impl From<crate::bindings::u32_result> for Result<u32> {
 
 pub fn twz_rt_insert_fot(this: &ObjectHandle, entry: *const u8) -> Result<u32> {
     unsafe {
-        let res = crate::bindings::twz_rt_insert_fot(
+        let res = nk!(crate::bindings::twz_rt_insert_fot(
             &this.0 as *const _ as *mut _,
             (entry as *mut u8).cast(),
-        );
+        ));
         res.into()
     }
 }
@@ -387,8 +399,12 @@ pub fn twz_rt_resolve_fot_local(
     flags: MapFlags,
 ) -> *mut u8 {
     unsafe {
-        let res =
-            crate::bindings::twz_rt_resolve_fot_local(start.cast(), idx, valid_len, flags.bits());
+        let res = nk!(crate::bindings::twz_rt_resolve_fot_local(
+            start.cast(),
+            idx,
+            valid_len,
+            flags.bits()
+        ));
         res.cast()
     }
 }
@@ -397,12 +413,12 @@ use crate::bindings::release_flags;
 
 /// Release a handle. Should be only called by the ObjectHandle drop call.
 pub fn twz_rt_release_handle(handle: &mut ObjectHandle, flags: release_flags) {
-    unsafe { crate::bindings::twz_rt_release_handle(&mut handle.0, flags) }
+    unsafe { nk!(crate::bindings::twz_rt_release_handle(&mut handle.0, flags)) }
 }
 
 /// Update a handle.
 pub fn twz_rt_update_handle(handle: &mut ObjectHandle) -> Result<()> {
-    let r = unsafe { crate::bindings::twz_rt_update_handle(&mut handle.0) };
+    let r = unsafe { nk!(crate::bindings::twz_rt_update_handle(&mut handle.0)) };
     let r = RawTwzError::new(r);
     if r.is_success() {
         Ok(())
@@ -421,14 +437,14 @@ pub fn twz_rt_map_two_objects(
     unsafe {
         let mut res1 = MaybeUninit::uninit();
         let mut res2 = MaybeUninit::uninit();
-        crate::bindings::__twz_rt_map_two_objects(
+        nk!(crate::bindings::__twz_rt_map_two_objects(
             id1.raw(),
             flags1.bits(),
             id2.raw(),
             flags2.bits(),
             res1.as_mut_ptr(),
             res2.as_mut_ptr(),
-        );
+        ));
 
         let res1 = res1.assume_init();
         let res2 = res2.assume_init();
@@ -610,25 +626,44 @@ impl ObjectSource {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Default)]
-#[repr(C)]
+#[repr(u32)]
 /// The backing memory type for this object. Currently doesn't do anything.
 pub enum BackingType {
     /// The default, let the kernel decide based on the [LifetimeType] of the object.
     #[default]
-    Normal = 0,
+    Normal = crate::bindings::BACKING_TYPE_NORMAL,
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq, Default)]
-#[repr(C)]
+#[repr(u32)]
 /// The base lifetime type of the object. Note that this does not ensure that the object is stored
 /// in a specific type of memory, the kernel is allowed to migrate objects with the Normal
 /// [BackingType] as it sees fit. For more information on object lifetime, see [the book](https://twizzler-operating-system.github.io/nightly/book/object_lifetime.html).
 pub enum LifetimeType {
     /// This object is volatile, and is expected to be deleted after a power cycle.
     #[default]
-    Volatile = 0,
+    Volatile = crate::bindings::LIFETIME_TYPE_VOLATILE,
     /// This object is persistent, and should be deleted only after an explicit delete call.
-    Persistent = 1,
+    Persistent = crate::bindings::LIFETIME_TYPE_PERSISTENT,
+}
+
+impl From<u32> for LifetimeType {
+    fn from(value: u32) -> Self {
+        match value {
+            crate::bindings::LIFETIME_TYPE_VOLATILE => LifetimeType::Volatile,
+            crate::bindings::LIFETIME_TYPE_PERSISTENT => LifetimeType::Persistent,
+            _ => panic!("Invalid lifetime type"),
+        }
+    }
+}
+
+impl From<u32> for BackingType {
+    fn from(value: u32) -> Self {
+        match value {
+            crate::bindings::BACKING_TYPE_NORMAL => BackingType::Normal,
+            _ => panic!("Invalid backing type"),
+        }
+    }
 }
 
 bitflags! {
@@ -700,6 +735,18 @@ impl From<ObjectCreate> for crate::bindings::object_create {
     }
 }
 
+impl From<object_create> for ObjectCreate {
+    fn from(value: object_create) -> Self {
+        Self {
+            kuid: ObjID::new(value.kuid),
+            bt: BackingType::from(value.backing),
+            lt: LifetimeType::from(value.lifetime),
+            flags: ObjectCreateFlags::from_bits_truncate(value.flags),
+            def_prot: Protections::from_bits_truncate(value.prot as u16),
+        }
+    }
+}
+
 #[derive(Debug, Copy, Clone, PartialEq, PartialOrd, Ord, Eq)]
 #[repr(C)]
 /// A specification of ties to create.
@@ -722,5 +769,37 @@ impl From<CreateTieSpec> for object_tie {
             id: value.id.raw(),
             flags: value.flags.bits(),
         }
+    }
+}
+
+unsafe impl Send for sync_info {}
+unsafe impl Sync for sync_info {}
+
+impl sync_info {
+    pub unsafe fn try_release(&self) -> Result<()> {
+        self.release_ptr
+            .cast::<AtomicU64>()
+            .as_ref()
+            .unwrap()
+            .compare_exchange(
+                self.release_compare,
+                self.release_set,
+                Ordering::SeqCst,
+                Ordering::SeqCst,
+            )
+            .map_err(|_| TwzError::Resource(ResourceError::Refused))
+            .map(|_| ())
+    }
+
+    pub unsafe fn set_durable(&self, err: impl Into<RawTwzError>) {
+        if self.durable_ptr.is_null() {
+            return;
+        }
+
+        self.durable_ptr
+            .cast::<AtomicU64>()
+            .as_ref()
+            .unwrap()
+            .store(err.into().raw(), Ordering::SeqCst);
     }
 }

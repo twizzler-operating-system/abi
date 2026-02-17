@@ -5,7 +5,7 @@ use core::time::Duration;
 pub use crate::bindings::descriptor as RawFd;
 use crate::{
     error::{ArgumentError, RawTwzError, TwzError},
-    Result,
+    nk, Result,
 };
 
 bitflags::bitflags! {
@@ -143,7 +143,7 @@ impl From<crate::bindings::open_result> for Result<RawFd> {
 pub fn twz_rt_fd_get_info(fd: RawFd) -> Result<FdInfo> {
     let mut info = core::mem::MaybeUninit::uninit();
     unsafe {
-        if crate::bindings::twz_rt_fd_get_info(fd, info.as_mut_ptr()) {
+        if nk!(crate::bindings::twz_rt_fd_get_info(fd, info.as_mut_ptr())) {
             return Ok(info.assume_init().into());
         }
     }
@@ -198,8 +198,13 @@ pub fn twz_rt_fd_enumerate_names(
     off: usize,
 ) -> Result<usize> {
     unsafe {
-        crate::bindings::twz_rt_fd_enumerate_names(fd, entries.as_mut_ptr(), entries.len(), off)
-            .into()
+        nk!(crate::bindings::twz_rt_fd_enumerate_names(
+            fd,
+            entries.as_mut_ptr(),
+            entries.len(),
+            off
+        )
+        .into())
     }
 }
 
@@ -262,7 +267,12 @@ impl binding_info {
 }
 
 pub fn twz_rt_fd_read_binds(binds: &mut [binding_info]) -> usize {
-    unsafe { crate::bindings::twz_rt_fd_read_binds(binds.as_mut_ptr(), binds.len()) }
+    unsafe {
+        nk!(crate::bindings::twz_rt_fd_read_binds(
+            binds.as_mut_ptr(),
+            binds.len()
+        ))
+    }
 }
 
 /// Open a file descriptor by name, as a C-string.
@@ -280,13 +290,13 @@ pub fn twz_rt_fd_copen(
     };
     info.name[0..name_len].copy_from_slice(&name.to_bytes()[0..name_len]);
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             crate::bindings::open_kind_OpenKind_Path,
             flags,
             (&mut info as *mut crate::bindings::open_info).cast(),
             size_of_val(&info),
         )
-        .into()
+        .into())
     }
 }
 
@@ -305,23 +315,23 @@ pub fn twz_rt_fd_open(
     };
     info.name[0..name_len].copy_from_slice(&name.as_bytes()[0..name_len]);
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             crate::bindings::open_kind_OpenKind_Path,
             flags,
             (&mut info as *mut crate::bindings::open_info).cast(),
             size_of_val(&info),
         )
-        .into()
+        .into())
     }
 }
 
 /// Remove a name
 pub fn twz_rt_fd_remove(name: &str) -> Result<()> {
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_remove(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_remove(
             name.as_ptr().cast(),
             name.len(),
-        ))
+        )))
         .result()
     }
 }
@@ -329,10 +339,10 @@ pub fn twz_rt_fd_remove(name: &str) -> Result<()> {
 /// Make a new namespace
 pub fn twz_rt_fd_mkns(name: &str) -> Result<()> {
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_mkns(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_mkns(
             name.as_ptr().cast(),
             name.len(),
-        ))
+        )))
         .result()
     }
 }
@@ -340,12 +350,12 @@ pub fn twz_rt_fd_mkns(name: &str) -> Result<()> {
 /// Make a new symlink
 pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_symlink(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_symlink(
             name.as_ptr().cast(),
             name.len(),
             target.as_ptr().cast(),
             target.len(),
-        ))
+        )))
         .result()
     }
 }
@@ -353,13 +363,13 @@ pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
 pub fn twz_rt_fd_readlink(name: &str, buf: &mut [u8]) -> Result<usize> {
     let mut len: u64 = 0;
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_readlink(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_readlink(
             name.as_ptr().cast(),
             name.len(),
             buf.as_mut_ptr().cast(),
             buf.len(),
             &mut len,
-        ))
+        )))
         .result()?;
     }
     Ok(len as usize)
@@ -551,12 +561,12 @@ pub fn twz_rt_fd_open_socket_bind(
         prot: prot as u32,
     };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::SocketBind.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
             core::mem::size_of::<crate::bindings::socket_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -564,12 +574,12 @@ pub fn twz_rt_fd_open_socket_bind(
 /// Open an anonymous file descriptor.
 pub fn twz_rt_fd_open_socket(flags: u32, _prot: ProtKind) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::SocketBind.into(),
             flags,
             core::ptr::null_mut(),
             0,
-        )
+        ))
         .into()
     }
 }
@@ -586,13 +596,13 @@ pub fn twz_rt_fd_socket_rebind(
         prot: prot as u32,
     };
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_reopen(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_reopen(
             fd,
             OpenKind::SocketBind.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
             core::mem::size_of::<crate::bindings::socket_bind_info>(),
-        ))
+        )))
         .result()
     }
 }
@@ -600,12 +610,12 @@ pub fn twz_rt_fd_socket_rebind(
 // Accept a connection on a bound socket file descriptor, creating a new file descriptor.
 pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> {
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::SocketAccept.into(),
             flags,
             ((&mut fd) as *mut RawFd).cast(),
             core::mem::size_of::<RawFd>(),
-        )
+        ))
         .into()
     }
 }
@@ -621,12 +631,12 @@ pub fn twz_rt_fd_open_socket_connect(
         prot: prot as u32,
     };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::SocketConnect.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
             core::mem::size_of::<crate::bindings::socket_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -643,13 +653,13 @@ pub fn twz_rt_fd_socket_reconnect(
         prot: prot as u32,
     };
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_reopen(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_reopen(
             fd,
             OpenKind::SocketConnect.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::socket_bind_info).cast(),
             core::mem::size_of::<crate::bindings::socket_bind_info>(),
-        ))
+        )))
         .result()
     }
 }
@@ -658,12 +668,12 @@ pub fn twz_rt_fd_socket_reconnect(
 pub fn twz_rt_fd_open_pty_server(id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
     let mut binding = crate::bindings::object_bind_info { id };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::PtyServer.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
             core::mem::size_of::<crate::bindings::object_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -672,12 +682,12 @@ pub fn twz_rt_fd_open_pty_server(id: twizzler_types::ObjID, flags: u32) -> Resul
 pub fn twz_rt_fd_open_pty_client(id: twizzler_types::ObjID, flags: u32) -> Result<RawFd> {
     let mut binding = crate::bindings::object_bind_info { id };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::PtyClient.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
             core::mem::size_of::<crate::bindings::object_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -686,12 +696,12 @@ pub fn twz_rt_fd_open_pty_client(id: twizzler_types::ObjID, flags: u32) -> Resul
 pub fn twz_rt_fd_open_compartment(id: crate::bindings::objid, flags: u32) -> Result<RawFd> {
     let mut binding = crate::bindings::object_bind_info { id };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::Compartment.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
             core::mem::size_of::<crate::bindings::object_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -702,12 +712,12 @@ pub fn twz_rt_fd_open_pipe(id: Option<crate::bindings::objid>, flags: u32) -> Re
         id: id.unwrap_or(0),
     };
     unsafe {
-        crate::bindings::twz_rt_fd_open(
+        nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::Pipe.into(),
             flags,
             ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
             core::mem::size_of::<crate::bindings::object_bind_info>(),
-        )
+        ))
         .into()
     }
 }
@@ -716,12 +726,12 @@ pub fn twz_rt_fd_open_pipe(id: Option<crate::bindings::objid>, flags: u32) -> Re
 pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
     let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
     unsafe {
-        let e = crate::bindings::twz_rt_fd_cmd(
+        let e = nk!(crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_DUP,
             core::ptr::null_mut(),
             new_fd.as_mut_ptr().cast(),
-        );
+        ));
         let raw = RawTwzError::new(e);
         if raw.is_success() {
             Ok(new_fd.assume_init())
@@ -734,24 +744,24 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
 /// Sync a file descriptor.
 pub fn twz_rt_fd_sync(fd: RawFd) {
     unsafe {
-        crate::bindings::twz_rt_fd_cmd(
+        nk!(crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_SYNC,
             core::ptr::null_mut(),
             core::ptr::null_mut(),
-        );
+        ));
     }
 }
 
 /// Truncate a file descriptor.
 pub fn twz_rt_fd_truncate(fd: RawFd, mut len: u64) -> Result<()> {
     unsafe {
-        let e = crate::bindings::twz_rt_fd_cmd(
+        let e = nk!(crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_TRUNCATE,
             (&mut len as *mut u64).cast(),
             core::ptr::null_mut(),
-        );
+        ));
         let raw = RawTwzError::new(e);
         if !raw.is_success() {
             return Err(raw.error());
@@ -769,12 +779,12 @@ pub fn twz_rt_fd_shutdown(fd: RawFd, read: bool, write: bool) -> Result<()> {
         bits |= 2;
     }
     unsafe {
-        let e = crate::bindings::twz_rt_fd_cmd(
+        let e = nk!(crate::bindings::twz_rt_fd_cmd(
             fd,
             crate::bindings::FD_CMD_SHUTDOWN,
             (&mut bits as *mut u32).cast(),
             core::ptr::null_mut(),
-        );
+        ));
         let raw = RawTwzError::new(e);
         if !raw.is_success() {
             return Err(raw.error());
@@ -785,7 +795,7 @@ pub fn twz_rt_fd_shutdown(fd: RawFd, read: bool, write: bool) -> Result<()> {
 
 /// Close a file descriptor. If the fd is already closed, or invalid, this function has no effect.
 pub fn twz_rt_fd_close(fd: RawFd) {
-    unsafe { crate::bindings::twz_rt_fd_close(fd) }
+    unsafe { nk!(crate::bindings::twz_rt_fd_close(fd)) }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Ord, PartialOrd)]
@@ -813,13 +823,20 @@ impl From<u32> for NameRoot {
 
 pub fn twz_rt_get_nameroot(root: NameRoot, buf: &mut [u8]) -> Result<usize> {
     unsafe {
-        crate::bindings::twz_rt_get_nameroot(root as u32, buf.as_mut_ptr().cast(), buf.len()).into()
+        nk!(
+            crate::bindings::twz_rt_get_nameroot(root as u32, buf.as_mut_ptr().cast(), buf.len())
+                .into()
+        )
     }
 }
 
 pub fn twz_rt_set_nameroot(root: NameRoot, buf: &[u8]) -> Result<()> {
     let res = unsafe {
-        crate::bindings::twz_rt_set_nameroot(root as u32, buf.as_ptr().cast(), buf.len())
+        nk!(crate::bindings::twz_rt_set_nameroot(
+            root as u32,
+            buf.as_ptr().cast(),
+            buf.len()
+        ))
     };
     let r = RawTwzError::new(res);
     if r.is_success() {
@@ -853,7 +870,11 @@ pub fn twz_rt_resolve_name(
 ) -> Result<crate::object::ObjID> {
     let name = name.as_ref().as_bytes();
     let res = unsafe {
-        crate::bindings::twz_rt_resolve_name(resolver as u32, name.as_ptr().cast(), name.len())
+        nk!(crate::bindings::twz_rt_resolve_name(
+            resolver as u32,
+            name.as_ptr().cast(),
+            name.len()
+        ))
     };
     let r = RawTwzError::new(res.err);
     if r.is_success() {
@@ -871,13 +892,13 @@ pub fn twz_rt_canon_name(
     let name = name.as_ref().as_bytes();
     let mut out_len = out_name.len();
     let res = unsafe {
-        crate::bindings::twz_rt_canon_name(
+        nk!(crate::bindings::twz_rt_canon_name(
             resolver as u32,
             name.as_ptr().cast(),
             name.len(),
             out_name.as_mut_ptr().cast(),
             &mut out_len,
-        )
+        ))
     };
     let r = RawTwzError::new(res);
     if r.is_success() {
@@ -894,13 +915,13 @@ pub fn twz_rt_socket_names(
     let name = name.as_ref().as_bytes();
     let mut out_len = out_addrs.len() * size_of::<SocketAddress>();
     let res = unsafe {
-        crate::bindings::twz_rt_canon_name(
+        nk!(crate::bindings::twz_rt_canon_name(
             NameResolver::Socket as u32,
             name.as_ptr().cast(),
             name.len(),
             out_addrs.as_mut_ptr().cast(),
             &mut out_len,
-        )
+        ))
     };
     let r = RawTwzError::new(res);
     if r.is_success() {

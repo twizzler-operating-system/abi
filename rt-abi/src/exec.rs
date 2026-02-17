@@ -3,6 +3,7 @@ use core::ffi::{c_char, CStr};
 use crate::{
     bindings::{binding_info, descriptor, exec_flags, exec_spawn_args},
     error::TwzError,
+    nk,
 };
 
 pub fn twz_rt_exec_spawn(
@@ -20,5 +21,5 @@ pub fn twz_rt_exec_spawn(
         fd_bind_count: fd_binds.len(),
         flags,
     };
-    unsafe { crate::bindings::twz_rt_exec_spawn(&spawn_args).into() }
+    unsafe { nk!(crate::bindings::twz_rt_exec_spawn(&spawn_args).into()) }
 }

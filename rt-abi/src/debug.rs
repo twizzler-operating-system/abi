@@ -2,7 +2,7 @@
 
 use core::mem::MaybeUninit;
 
-use crate::object::ObjectHandle;
+use crate::{nk, object::ObjectHandle};
 
 /// Information about loaded image program headers.
 pub type DlPhdrInfo = crate::bindings::dl_phdr_info;
@@ -74,7 +74,10 @@ impl Drop for LoadedImage {
 pub fn twz_rt_get_loaded_image(id: LoadedImageId) -> Option<LoadedImage> {
     unsafe {
         let mut li = MaybeUninit::uninit();
-        if !crate::bindings::twz_rt_get_loaded_image(id, li.as_mut_ptr()) {
+        if !nk!(crate::bindings::twz_rt_get_loaded_image(
+            id,
+            li.as_mut_ptr()
+        )) {
             return None;
         }
 

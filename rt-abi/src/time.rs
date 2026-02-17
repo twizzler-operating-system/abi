@@ -2,6 +2,8 @@
 
 use core::time::Duration;
 
+use crate::nk;
+
 /// Possible monotonicities supported by the system monotonic clock.
 #[repr(u32)]
 pub enum Monotonicity {
@@ -28,12 +30,12 @@ impl From<crate::bindings::monotonicity> for Monotonicity {
 
 /// Read the system monotonic clock.
 pub fn twz_rt_get_monotonic_time() -> Duration {
-    unsafe { crate::bindings::twz_rt_get_monotonic_time().into() }
+    unsafe { nk!(crate::bindings::twz_rt_get_monotonic_time().into()) }
 }
 
 /// Read the system time.
 pub fn twz_rt_get_system_time() -> Duration {
-    unsafe { crate::bindings::twz_rt_get_system_time().into() }
+    unsafe { nk!(crate::bindings::twz_rt_get_system_time().into()) }
 }
 
 impl From<Duration> for crate::bindings::duration {

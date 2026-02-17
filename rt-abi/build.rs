@@ -10,13 +10,14 @@ fn main() {
     unsafe {
         std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
     }
-    let mut bg = std::process::Command::new("bindgen");
+    let mut bg = std::process::Command::new(format!("{}/toolchain/install/bin/bindgen", pwd));
 
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
     }
     bg.arg("--override-abi").arg(".*=C-unwind");
     bg.arg("--use-core");
+    bg.arg("--distrust-clang-mangling");
     bg.arg("--with-derive-default");
     bg.arg(format!("{}/__all.h", prefix));
     bg.arg("-o")

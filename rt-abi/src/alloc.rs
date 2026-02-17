@@ -2,6 +2,8 @@
 
 use core::alloc::Layout;
 
+use crate::nk;
+
 bitflags::bitflags! {
     /// Flags for allocation functions.
     pub struct AllocFlags : crate::bindings::alloc_flags {
@@ -16,7 +18,11 @@ bitflags::bitflags! {
 ///   - ZERO_MEMORY: Zero the newly-allocated memory before returning it to the user.
 pub fn twz_rt_malloc(layout: Layout, flags: AllocFlags) -> Option<*mut u8> {
     unsafe {
-        let ptr = crate::bindings::twz_rt_malloc(layout.size(), layout.align(), flags.bits());
+        let ptr = nk!(crate::bindings::twz_rt_malloc(
+            layout.size(),
+            layout.align(),
+            flags.bits()
+        ));
         if ptr.is_null() {
             None
         } else {
@@ -44,13 +50,13 @@ pub unsafe fn twz_rt_realloc(
     flags: AllocFlags,
 ) -> Option<*mut u8> {
     unsafe {
-        let ptr = crate::bindings::twz_rt_realloc(
+        let ptr = nk!(crate::bindings::twz_rt_realloc(
             ptr.cast(),
             layout.size(),
             layout.align(),
             new_size,
             flags.bits(),
-        );
+        ));
         if ptr.is_null() {
             None
         } else {
@@ -68,6 +74,11 @@ pub unsafe fn twz_rt_realloc(
 ///   - ZERO_MEMORY: Zero the old memory before freeing.
 pub unsafe fn twz_rt_dealloc(ptr: *mut u8, layout: Layout, flags: AllocFlags) {
     unsafe {
-        crate::bindings::twz_rt_dealloc(ptr.cast(), layout.size(), layout.align(), flags.bits())
+        nk!(crate::bindings::twz_rt_dealloc(
+            ptr.cast(),
+            layout.size(),
+            layout.align(),
+            flags.bits()
+        ))
     }
 }

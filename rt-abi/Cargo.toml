@@ -37,4 +37,4 @@ rustc-dep-of-std = [
 stderr = []
 kernel = []
 rt0 = []
-#default = ["rt0", "stderr"]
+default = ["rt0", "stderr"]

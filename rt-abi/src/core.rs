@@ -2,13 +2,16 @@
 
 /// Type for exit code.
 pub type ExitCode = crate::bindings::exit_code;
-use crate::error::{GenericError, TwzError};
+use crate::{
+    error::{GenericError, TwzError},
+    nk,
+};
 
 /// Exit with the provided error code. If the main thread for a program
 /// exits, the remaining threads will exit as well.
 pub fn twz_rt_exit(code: ExitCode) -> ! {
     unsafe {
-        crate::bindings::twz_rt_exit(code);
+        nk!(crate::bindings::twz_rt_exit(code));
         unreachable!()
     }
 }
@@ -16,7 +19,7 @@ pub fn twz_rt_exit(code: ExitCode) -> ! {
 /// Abort execution due to unrecoverable language error.
 pub fn twz_rt_abort() -> ! {
     unsafe {
-        crate::bindings::twz_rt_abort();
+        nk!(crate::bindings::twz_rt_abort());
         unreachable!()
     }
 }
@@ -25,7 +28,7 @@ pub fn twz_rt_abort() -> ! {
 /// If this function returns None, then call main. Otherwise, act
 /// as if main returned the provided [ExitCode].
 pub fn twz_rt_pre_main_hook() -> Option<ExitCode> {
-    unsafe { crate::bindings::twz_rt_pre_main_hook().into() }
+    unsafe { nk!(crate::bindings::twz_rt_pre_main_hook().into()) }
 }
 
 impl From<crate::bindings::option_exit_code> for Option<ExitCode> {
@@ -42,14 +45,14 @@ impl From<crate::bindings::option_exit_code> for Option<ExitCode> {
 /// Call this after return from main, before running destructors.
 pub fn twz_rt_post_main_hook() {
     unsafe {
-        crate::bindings::twz_rt_post_main_hook();
+        nk!(crate::bindings::twz_rt_post_main_hook());
     }
 }
 
 /// Called by security context code on compartment entry
 pub fn twz_rt_cross_compartment_entry() -> Result<(), TwzError> {
     unsafe {
-        if crate::bindings::twz_rt_cross_compartment_entry() {
+        if nk!(crate::bindings::twz_rt_cross_compartment_entry()) {
             Ok(())
         } else {
             Err(GenericError::AccessDenied.into())
@@ -80,7 +83,7 @@ pub fn twz_rt_runtime_entry(
     std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn,
 ) -> ! {
     unsafe {
-        crate::bindings::twz_rt_runtime_entry(info, Some(std_entry));
+        nk!(crate::bindings::twz_rt_runtime_entry(info, Some(std_entry)));
         unreachable!()
     }
 }

@@ -59,6 +59,11 @@ struct object_create {
     uint32_t prot;
 };
 
+const uint32_t BACKING_TYPE_NORMAL = 0;
+
+const uint32_t LIFETIME_TYPE_VOLATILE = 0;
+const uint32_t LIFETIME_TYPE_PERSISTENT = 1;
+
 extern struct objid_result twz_rt_create_object(const struct object_create *spec, const struct object_source *sources, size_t nr_sources, const struct object_tie *ties, size_t nr_ties, const char *name, size_t namelen);
 
 /// Map an object with a given ID and flags.
@@ -70,9 +75,22 @@ typedef uint32_t object_cmd;
 
 const object_cmd OBJECT_CMD_DELETE = 1;
 const object_cmd OBJECT_CMD_SYNC = 2;
+const object_cmd OBJECT_CMD_UPDATE = 3;
+
+struct sync_info {
+    uint64_t release_compare;
+    uint64_t release_set;
+    _Atomic uint64_t *release_ptr;
+    _Atomic uint64_t *durable_ptr;
+    uint32_t flags;
+    uint32_t __resv;
+};
+
+const uint32_t SYNC_FLAG_DURABLE = 1;
+const uint32_t SYNC_FLAG_ASYNC_DURABLE = 2;
 
 /// Modify an object.
-extern twz_error twz_rt_object_cmd(struct object_handle *handle, object_cmd cmd, uint64_t arg);
+extern twz_error twz_rt_object_cmd(struct object_handle *handle, object_cmd cmd, void *data);
 
 /// Update an object handle.
 extern twz_error twz_rt_update_handle(struct object_handle *handle);
