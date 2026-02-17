@@ -124,8 +124,25 @@ bitflags::bitflags! {
         const PERSIST = crate::bindings::MAP_FLAG_PERSIST;
         /// Use runtime support for read stability.
         const INDIRECT = crate::bindings::MAP_FLAG_INDIRECT;
-        /// Use runtime support for read stability.
         const NO_NULLPAGE = crate::bindings::MAP_FLAG_NO_NULLPAGE;
+    }
+}
+
+impl MapFlags {
+    pub fn rw() -> Self {
+        Self::READ | Self::WRITE | Self::PERSIST
+    }
+
+    pub fn rw_volatile() -> Self {
+        Self::READ | Self::WRITE
+    }
+
+    pub fn ro() -> Self {
+        Self::READ | Self::INDIRECT
+    }
+
+    pub fn rx() -> Self {
+        Self::READ | Self::EXEC | Self::INDIRECT
     }
 }
 
