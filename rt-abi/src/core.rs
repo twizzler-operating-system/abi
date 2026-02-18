@@ -138,9 +138,17 @@ pub mod rt0 {
     pub unsafe fn rust_entry(arg: *const RuntimeInfo) -> ! {
         // All we need to do is grab the runtime and call its init function. We want to
         // do as little as possible here.
-        super::twz_rt_runtime_entry(arg, std_entry_from_runtime)
+        #[cfg(target_os = "twizzler")]
+        {
+            super::twz_rt_runtime_entry(arg, std_entry_from_runtime)
+        }
+        #[cfg(not(target_os = "twizzler"))]
+        {
+            panic!("")
+        }
     }
 
+    #[cfg(target_os = "twizzler")]
     extern "C-unwind" {
         fn std_entry_from_runtime(aux: BasicAux) -> BasicReturn;
     }
