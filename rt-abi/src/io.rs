@@ -1,7 +1,10 @@
 //! Runtime interface for IO-like operations.
 
 #![allow(unused_variables)]
+use core::{mem::MaybeUninit, sync::atomic::AtomicU64};
+
 use crate::{
+    bindings::wait_kind,
     error::RawTwzError,
     fd::{RawFd, SocketAddress},
     nk, Result,
@@ -281,4 +284,24 @@ pub fn twz_rt_fd_set_config<T>(fd: RawFd, reg: u32, val: T) -> Result<()> {
         return Err(raw.error());
     }
     Ok(())
+}
+
+pub fn twz_rt_fd_waitpoint(fd: RawFd, kind: wait_kind) -> Result<(*const AtomicU64, u64)> {
+    let mut pt = MaybeUninit::uninit();
+    let mut val = MaybeUninit::uninit();
+    let e = unsafe {
+        nk!(crate::bindings::twz_rt_fd_waitpoint(
+            fd,
+            kind,
+            pt.as_mut_ptr(),
+            val.as_mut_ptr()
+        ))
+    };
+    let raw = RawTwzError::new(e);
+    if !raw.is_success() {
+        return Err(raw.error());
+    }
+    Ok((unsafe { pt.assume_init().cast() }, unsafe {
+        val.assume_init()
+    }))
 }
