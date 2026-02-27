@@ -363,12 +363,12 @@ pub fn twz_rt_fd_symlink(name: &str, target: &str) -> Result<()> {
 /// Rename a name in the namespace.
 pub fn twz_rt_fd_rename(old_name: &str, new_name: &str) -> Result<()> {
     unsafe {
-        RawTwzError::new(crate::bindings::twz_rt_fd_rename(
+        RawTwzError::new(nk!(crate::bindings::twz_rt_fd_rename(
             old_name.as_ptr().cast(),
             old_name.len(),
             new_name.as_ptr().cast(),
             new_name.len(),
-        ))
+        )))
         .result()
     }
 }
