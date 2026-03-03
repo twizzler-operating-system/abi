@@ -10,7 +10,7 @@ fn main() {
     unsafe {
         std::env::set_var("PATH", format!("{}/toolchain/install/bin:{}", pwd, path));
     }
-    let mut bg = std::process::Command::new(format!("{}/toolchain/install/bin/bindgen", pwd));
+    let mut bg = std::process::Command::new("bindgen");
 
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
