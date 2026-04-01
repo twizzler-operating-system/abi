@@ -81,9 +81,14 @@ unsafe impl Sync for CompartmentInitInfo {}
 pub fn twz_rt_runtime_entry(
     info: *const RuntimeInfo,
     std_entry: unsafe extern "C-unwind" fn(BasicAux) -> BasicReturn,
+    main: usize,
 ) -> ! {
     unsafe {
-        nk!(crate::bindings::twz_rt_runtime_entry(info, Some(std_entry)));
+        nk!(crate::bindings::twz_rt_runtime_entry(
+            info,
+            Some(std_entry),
+            main
+        ));
         unreachable!()
     }
 }
@@ -94,53 +99,26 @@ pub mod rt0 {
     //! part of the C runtime:
     //!
     //!   - __tls_get_addr for handling non-local TLS regions.
-    //!   - _start, the entry point of an executable (per-arch, as this is assembly code).
-
-    #[cfg(target_arch = "aarch64")]
-    #[unsafe(no_mangle)]
-    #[unsafe(naked)]
-    pub unsafe extern "C" fn _start() {
-        core::arch::naked_asm!(
-            "b {entry}",
-            entry = sym entry,
-        );
-    }
-
-    #[cfg(target_arch = "x86_64")]
-    #[unsafe(no_mangle)]
-    #[unsafe(naked)]
-    pub unsafe extern "C" fn _start() {
-        // Align the stack and jump to rust code. If we come back, trigger an exception.
-        core::arch::naked_asm!(
-            "and rsp, 0xfffffffffffffff0",
-            "call {entry}",
-            "ud2",
-            entry = sym entry,
-        );
-    }
-
-    #[used]
-    // Ensure the compiler doesn't optimize us away!
-    static ENTRY: unsafe extern "C" fn() = _start;
 
     use super::{BasicAux, BasicReturn, RuntimeInfo};
 
     // The C-based entry point coming from arch-specific assembly _start function.
-    unsafe extern "C" fn entry(arg: usize) -> ! {
+    #[no_mangle]
+    pub unsafe extern "C" fn __rust_entry_from_c(arg: usize, main: usize) -> ! {
         // Just trampoline to rust-abi code.
-        rust_entry(arg as *const _)
+        rust_entry(arg as *const _, main)
     }
 
     /// Entry point for Rust code wishing to start from rt0.
     ///
     /// # Safety
     /// Do not call this unless you are bootstrapping a runtime.
-    pub unsafe fn rust_entry(arg: *const RuntimeInfo) -> ! {
+    pub unsafe fn rust_entry(arg: *const RuntimeInfo, main: usize) -> ! {
         // All we need to do is grab the runtime and call its init function. We want to
         // do as little as possible here.
         #[cfg(target_os = "twizzler")]
         {
-            super::twz_rt_runtime_entry(arg, std_entry_from_runtime)
+            super::twz_rt_runtime_entry(arg, std_entry_from_runtime, main)
         }
         #[cfg(not(target_os = "twizzler"))]
         {
