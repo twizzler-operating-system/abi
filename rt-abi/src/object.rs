@@ -4,6 +4,7 @@ use core::{
     ffi::c_void,
     fmt::{LowerHex, UpperHex},
     mem::MaybeUninit,
+    ptr::{addr_of, addr_of_mut},
     sync::atomic::{AtomicU32, AtomicU64, Ordering},
 };
 
@@ -192,9 +193,48 @@ impl ObjectHandle {
         }
     }
 
+    /// Get a slice of metadata extensions
+    fn all_meta_exts(&self) -> &[MetaExt] {
+        unsafe {
+            core::slice::from_raw_parts(
+                self.0.meta.cast::<u8>().add(size_of::<MetaInfo>()).cast(),
+                16,
+            )
+        }
+    }
+
     /// Find the first metadata extension matching the given tag
     pub fn find_meta_ext(&self, tag: MetaExtTag) -> Option<&MetaExt> {
-        self.meta_exts().iter().find(|e| e.tag == tag)
+        self.meta_exts()
+            .iter()
+            .find(|e| e.value.load(Ordering::SeqCst) != 0 && e.tag == tag)
+    }
+
+    pub unsafe fn set_meta_ext(&self, ext: MetaExt) -> Result<()> {
+        let meta_exts = self.meta_exts();
+        for me in meta_exts {
+            if me.tag == ext.tag {
+                me.value
+                    .store(ext.value.load(Ordering::SeqCst), Ordering::SeqCst);
+                return Ok(());
+            }
+        }
+        let meta_exts = self.all_meta_exts();
+        for (idx, me) in meta_exts.iter().enumerate() {
+            if me.tag == MEXT_EMPTY {
+                if me
+                    .value
+                    .swap(ext.value.load(Ordering::Relaxed), Ordering::SeqCst)
+                    == 0
+                {
+                    let ptr = addr_of!(me.tag) as *mut MetaExtTag;
+                    ptr.write(ext.tag);
+                    (*self.meta()).extcount = (idx + 1) as u16;
+                    return Ok(());
+                }
+            }
+        }
+        Err(TwzError::Resource(ResourceError::OutOfResources))
     }
 
     /// Get a pointer to the runtime info.
@@ -562,7 +602,16 @@ pub struct MetaExt {
     /// The tag.
     pub tag: MetaExtTag,
     /// A tag-specific value.
-    pub value: u64,
+    pub value: AtomicU64,
+}
+
+impl MetaExt {
+    pub fn new(tag: MetaExtTag, value: u64) -> Self {
+        Self {
+            tag,
+            value: AtomicU64::new(value),
+        }
+    }
 }
 
 pub const MEXT_EMPTY: MetaExtTag = MetaExtTag(0);
