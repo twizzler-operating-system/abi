@@ -1,7 +1,7 @@
 //! Runtime interface for threads.
 
 #![allow(unused_variables)]
-use core::time::Duration;
+use core::{ffi::c_void, time::Duration};
 
 use crate::{error::RawTwzError, nk, Result};
 
@@ -18,15 +18,17 @@ pub type AtomicFutexWord = core::sync::atomic::AtomicU32;
 /// Arguments to spawn.
 pub type ThreadSpawnArgs = crate::bindings::spawn_args;
 
-impl From<Result<ThreadId>> for crate::bindings::spawn_result {
-    fn from(value: Result<ThreadId>) -> Self {
+impl From<Result<(ThreadId, *mut c_void)>> for crate::bindings::spawn_result {
+    fn from(value: Result<(ThreadId, *mut c_void)>) -> Self {
         match value {
-            Ok(id) => Self {
+            Ok((id, tcb)) => Self {
                 id,
+                tcb,
                 err: RawTwzError::success().raw(),
             },
             Err(e) => Self {
                 id: 0,
+                tcb: core::ptr::null_mut(),
                 err: e.raw(),
             },
         }

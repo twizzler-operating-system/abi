@@ -231,7 +231,7 @@ pub fn twz_rt_fd_pwrite_to(
 }
 
 /// Type of an IO vec buffer and length.
-pub type IoSlice = crate::bindings::io_vec;
+pub type IoSlice = crate::bindings::iovec;
 
 /// Read a file descriptor into a multiple buffers. On success, returns the number of bytes actually
 /// read, which may be fewer than requested. If offset is None, use the file descriptor's internal
