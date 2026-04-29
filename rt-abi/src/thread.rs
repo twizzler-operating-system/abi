@@ -53,27 +53,33 @@ pub fn twz_rt_futex_wait(
     word: &AtomicFutexWord,
     expected: FutexWord,
     timeout: Option<Duration>,
-) -> bool {
+) -> Result<()> {
     unsafe {
-        nk!(crate::bindings::twz_rt_futex_wait(
+        match nk!(crate::bindings::twz_rt_futex_wait(
             word.as_ptr().cast(),
             expected,
             timeout.into()
-        ))
+        )) {
+            0 => Ok(()),
+            e => Err(RawTwzError::new(e).error()),
+        }
     }
 }
 
 /// Wake up up to max threads waiting on `word`. If max is None, wake up all threads.
-pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> bool {
+pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> Result<()> {
     let max = match max {
         Some(max) => max as i64,
         None => crate::bindings::FUTEX_WAKE_ALL,
     };
     unsafe {
-        nk!(crate::bindings::twz_rt_futex_wake(
+        match nk!(crate::bindings::twz_rt_futex_wake(
             word.as_ptr().cast(),
             max
-        ))
+        )) {
+            0 => Ok(()),
+            e => Err(RawTwzError::new(e).error()),
+        }
     }
 }
 

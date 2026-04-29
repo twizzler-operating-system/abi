@@ -92,6 +92,8 @@ impl TwzError {
     pub const TIMED_OUT: Self = Self::Generic(GenericError::TimedOut);
     pub const WOULD_BLOCK: Self = Self::Generic(GenericError::WouldBlock);
     pub const INVALID_ARGUMENT: Self = Self::Argument(ArgumentError::InvalidArgument);
+    pub const NOT_FOUND: Self = Self::Naming(NamingError::NotFound);
+    pub const SUCCESS: Self = Self::Uncategorized(bindings::SUCCESS);
 
     pub fn category(&self) -> ErrorCategory {
         match self {
