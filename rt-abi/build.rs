@@ -1,7 +1,9 @@
+#![feature(string_replace_in_place)]
+
 fn main() {
     let headers = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").ok();
     let sysroots = std::env::var("TWIZZLER_ABI_SYSROOTS").ok();
-    let target = std::env::var("TARGET").unwrap();
+    let mut target = std::env::var("TARGET").unwrap();
 
     let prefix = "../include/twizzler/rt";
 
@@ -39,7 +41,13 @@ fn main() {
     if let Some(sysroots) = sysroots {
         let sysheaders = format!("{}/{}/include", sysroots, target);
         bg.arg("-I").arg(sysheaders);
+        if target.ends_with("-none") {
+            target.replace_last("-none", "-twizzler");
+        }
+        let sysheaders = format!("{}/{}/include", sysroots, target);
+        bg.arg("-I").arg(sysheaders);
     }
+    eprintln!("running: {:?}", bg);
     let status = bg.status().expect("failed to generate bindings");
     if !status.success() {
         panic!("failed to generate bindings");

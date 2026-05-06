@@ -94,6 +94,7 @@ impl TwzError {
     pub const INVALID_ARGUMENT: Self = Self::Argument(ArgumentError::InvalidArgument);
     pub const NOT_FOUND: Self = Self::Naming(NamingError::NotFound);
     pub const SUCCESS: Self = Self::Uncategorized(bindings::SUCCESS);
+    pub const BAD_HANDLE: Self = Self::Argument(ArgumentError::BadHandle);
 
     pub fn category(&self) -> ErrorCategory {
         match self {
@@ -542,9 +543,9 @@ impl From<core::alloc::AllocError> for TwzError {
     }
 }
 
-#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+#[cfg(all(feature = "stderr", not(doc)))]
 extern crate std;
-#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+#[cfg(all(feature = "stderr", not(doc)))]
 impl From<std::io::ErrorKind> for TwzError {
     fn from(value: std::io::ErrorKind) -> Self {
         match value {
@@ -593,14 +594,14 @@ impl From<std::io::ErrorKind> for TwzError {
     }
 }
 
-#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+#[cfg(all(feature = "stderr", not(doc)))]
 impl From<std::io::Error> for TwzError {
     fn from(value: std::io::Error) -> Self {
         value.kind().into()
     }
 }
 
-#[cfg(all(feature = "stderr", not(doc), not(feature = "rustc-dep-of-std")))]
+#[cfg(all(feature = "stderr", not(doc)))]
 impl From<TwzError> for std::io::Error {
     fn from(value: TwzError) -> Self {
         std::io::Error::new(std::io::ErrorKind::Other, value)

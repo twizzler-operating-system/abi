@@ -286,22 +286,26 @@ pub fn twz_rt_fd_set_config<T>(fd: RawFd, reg: u32, val: T) -> Result<()> {
     Ok(())
 }
 
-pub fn twz_rt_fd_waitpoint(fd: RawFd, kind: wait_kind) -> Result<(*const AtomicU64, u64)> {
+pub fn twz_rt_fd_waitpoint(fd: RawFd, kind: wait_kind) -> Result<(*const AtomicU64, u64, bool)> {
     let mut pt = MaybeUninit::uninit();
     let mut val = MaybeUninit::uninit();
+    let mut ready = MaybeUninit::uninit();
     let e = unsafe {
         nk!(crate::bindings::twz_rt_fd_waitpoint(
             fd,
             kind,
             pt.as_mut_ptr(),
-            val.as_mut_ptr()
+            val.as_mut_ptr(),
+            ready.as_mut_ptr()
         ))
     };
     let raw = RawTwzError::new(e);
     if !raw.is_success() {
         return Err(raw.error());
     }
-    Ok((unsafe { pt.assume_init().cast() }, unsafe {
-        val.assume_init()
-    }))
+    Ok((
+        unsafe { pt.assume_init().cast() },
+        unsafe { val.assume_init() },
+        unsafe { ready.assume_init() },
+    ))
 }
