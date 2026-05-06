@@ -3,6 +3,7 @@
 #include "types.h"
 #include "fd.h"
 #include <sys/select.h>
+#include <poll.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -92,6 +93,7 @@ extern twz_error twz_rt_fd_waitpoint(descriptor fd, wait_kind ek, uint64_t **poi
 
 /// Select-like operation.
 extern struct io_result twz_rt_fd_select(size_t nfds, fd_set *readfds, fd_set *writefds, fd_set *exceptfds, struct option_duration timeout);
+extern struct io_result twz_rt_fd_poll(struct pollfd *fds, size_t nfds, struct option_duration timeout);
 
 /// Get a config value for register reg.
 extern twz_error twz_rt_fd_get_config(descriptor fd, uint32_t reg, void *val, size_t len);
