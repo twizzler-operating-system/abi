@@ -5,11 +5,11 @@
 #![feature(auto_traits)]
 #![feature(negative_impls)]
 #![cfg_attr(
-    all(feature = "stderr", not(feature = "rustc-dep-of-std")),
+    all(feature = "stderr", not(any(feature = "rustc-dep-of-std", doc))),
     feature(io_error_inprogress)
 )]
 #![cfg_attr(
-    all(feature = "stderr", not(feature = "rustc-dep-of-std")),
+    all(feature = "stderr", not(any(feature = "rustc-dep-of-std", doc))),
     feature(io_error_more)
 )]
 #![cfg_attr(feature = "kernel", allow(unused))]
