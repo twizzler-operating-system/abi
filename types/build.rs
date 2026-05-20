@@ -33,10 +33,14 @@ fn main() {
         bg.arg("-I").arg(headers);
     }
     if let Some(sysroots) = sysroots {
-        let sysheaders = format!("{}/{}", sysroots, target);
+        let sysheaders = format!("{}/{}/include", sysroots, target);
         bg.arg("-I").arg(sysheaders);
     }
 
-    let _status = bg.status().expect("failed to generate bindings");
+    let status = bg.status().expect("failed to generate bindings");
+    if !status.success() {
+        panic!("failed to generate bindings");
+    }
+   
     println!("cargo::rerun-if-changed=../include");
 }
