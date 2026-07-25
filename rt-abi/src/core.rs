@@ -7,6 +7,12 @@ use crate::{
     nk,
 };
 
+pub fn twz_rt_gc() {
+    unsafe {
+        nk!(crate::bindings::twz_rt_gc());
+    }
+}
+
 /// Exit with the provided error code. If the main thread for a program
 /// exits, the remaining threads will exit as well.
 pub fn twz_rt_exit(code: ExitCode) -> ! {
