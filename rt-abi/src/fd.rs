@@ -401,6 +401,7 @@ pub enum OpenKind {
     PtyClient = crate::bindings::open_kind_OpenKind_PtyClient,
     Compartment = crate::bindings::open_kind_OpenKind_Compartment,
     KernelConsole = crate::bindings::open_kind_OpenKind_KernelConsole,
+    Kqueue = crate::bindings::open_kind_OpenKind_Kqueue,
 }
 
 impl TryFrom<u32> for OpenKind {
@@ -418,6 +419,7 @@ impl TryFrom<u32> for OpenKind {
             crate::bindings::open_kind_OpenKind_Object => Ok(Self::Object),
             crate::bindings::open_kind_OpenKind_Compartment => Ok(Self::Compartment),
             crate::bindings::open_kind_OpenKind_KernelConsole => Ok(Self::KernelConsole),
+            crate::bindings::open_kind_OpenKind_Kqueue => Ok(Self::Kqueue),
 
             _ => Err(()),
         }
@@ -437,6 +439,7 @@ impl From<OpenKind> for u32 {
             OpenKind::PtyClient => crate::bindings::open_kind_OpenKind_PtyClient,
             OpenKind::Compartment => crate::bindings::open_kind_OpenKind_Compartment,
             OpenKind::KernelConsole => crate::bindings::open_kind_OpenKind_KernelConsole,
+            OpenKind::Kqueue => crate::bindings::open_kind_OpenKind_Kqueue,
         }
     }
 }
@@ -621,13 +624,14 @@ pub fn twz_rt_fd_socket_rebind(
 }
 
 // Accept a connection on a bound socket file descriptor, creating a new file descriptor.
-pub fn twz_rt_fd_open_socket_accept(mut fd: RawFd, flags: u32) -> Result<RawFd> {
+pub fn twz_rt_fd_open_socket_accept(fd: RawFd, flags: u32) -> Result<RawFd> {
+    let mut binding = crate::bindings::object_bind_info { id: fd as objid };
     unsafe {
         nk!(crate::bindings::twz_rt_fd_open(
             OpenKind::SocketAccept.into(),
             flags,
-            ((&mut fd) as *mut RawFd).cast(),
-            core::mem::size_of::<RawFd>(),
+            ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
+            core::mem::size_of::<crate::bindings::object_bind_info>(),
         ))
         .into()
     }
@@ -730,6 +734,19 @@ pub fn twz_rt_fd_open_pipe(id: Option<crate::bindings::objid>, flags: u32) -> Re
             flags,
             ((&mut binding) as *mut crate::bindings::object_bind_info).cast(),
             core::mem::size_of::<crate::bindings::object_bind_info>(),
+        ))
+        .into()
+    }
+}
+
+/// Create a new kqueue file descriptor.
+pub fn twz_rt_fd_open_kqueue(flags: u32) -> Result<RawFd> {
+    unsafe {
+        nk!(crate::bindings::twz_rt_fd_open(
+            OpenKind::Kqueue.into(),
+            flags,
+            core::ptr::null_mut(),
+            0,
         ))
         .into()
     }

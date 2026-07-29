@@ -67,6 +67,7 @@ enum open_kind {
   OpenKind_PtyServer,
   OpenKind_PtyClient,
   OpenKind_Compartment,
+  OpenKind_Kqueue,
 };
 
 enum addr_kind {
