@@ -83,6 +83,47 @@ unsafe impl Sync for RuntimeInfo {}
 unsafe impl Send for CompartmentInitInfo {}
 unsafe impl Sync for CompartmentInitInfo {}
 
+/// Standard ELF aux-vector keys, as used by every libc (and matching mlibc's
+/// `options/elf/include/elf.h`).
+pub mod auxv {
+    /// Terminates the aux vector.
+    pub const AT_NULL: usize = 0;
+    /// System page size.
+    pub const AT_PAGESZ: usize = 6;
+    /// Processor feature bits.
+    pub const AT_HWCAP: usize = 16;
+    /// Nonzero if the program should treat itself as running with elevated privilege.
+    pub const AT_SECURE: usize = 23;
+
+    /// Number of `usize` words [`entries`] returns.
+    pub const LEN: usize = 8;
+
+    /// The aux vector to append to a C entry stack, as key/value pairs.
+    ///
+    /// A libc locates the aux vector by walking past the argv and envp terminators of the entry
+    /// stack, then reading key/value pairs until it sees [`AT_NULL`]. There is no length anywhere,
+    /// so the terminator is what bounds the walk: an entry stack built without one makes
+    /// `getauxval()` read off the end of whatever allocation holds the stack.
+    ///
+    /// Only values that can be answered accurately are included. In particular there is no
+    /// `AT_PHDR`/`AT_PHNUM`/`AT_ENTRY` — program headers are served by `twz_rt_iter_phdr`
+    /// instead — and no `AT_RANDOM`, since a libc reading it expects a valid pointer to 16 bytes
+    /// of entropy. Absent keys make `getauxval()` return 0, which callers must already handle.
+    pub const fn entries(page_size: usize) -> [usize; LEN] {
+        [
+            AT_PAGESZ,
+            page_size,
+            // No feature bits are advertised, so string/math routines take their baseline paths.
+            AT_HWCAP,
+            0,
+            AT_SECURE,
+            0,
+            AT_NULL,
+            0,
+        ]
+    }
+}
+
 /// The entry point for the runtime. Not for public use.
 pub fn twz_rt_runtime_entry(
     info: *const RuntimeInfo,

@@ -771,6 +771,27 @@ pub fn twz_rt_fd_dup(fd: RawFd) -> Result<RawFd> {
     }
 }
 
+/// Duplicate a file descriptor onto a specific descriptor number, closing whatever `to` referred
+/// to beforehand. Duplicating a descriptor onto itself succeeds and does nothing.
+pub fn twz_rt_fd_dup2(fd: RawFd, to: RawFd) -> Result<RawFd> {
+    let mut new_fd = core::mem::MaybeUninit::<RawFd>::uninit();
+    let mut to = to;
+    unsafe {
+        let e = nk!(crate::bindings::twz_rt_fd_cmd(
+            fd,
+            crate::bindings::FD_CMD_DUP2,
+            (&raw mut to).cast(),
+            new_fd.as_mut_ptr().cast(),
+        ));
+        let raw = RawTwzError::new(e);
+        if raw.is_success() {
+            Ok(new_fd.assume_init())
+        } else {
+            Err(raw.error())
+        }
+    }
+}
+
 /// Sync a file descriptor.
 pub fn twz_rt_fd_sync(fd: RawFd) {
     unsafe {
