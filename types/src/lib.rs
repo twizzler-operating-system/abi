@@ -8,4 +8,6 @@ pub type ObjID = bindings::objid;
     non_upper_case_globals,
     improper_ctypes
 )]
-pub(crate) mod bindings;
+pub(crate) mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}

@@ -111,15 +111,9 @@ pub mod auxv {
     /// of entropy. Absent keys make `getauxval()` return 0, which callers must already handle.
     pub const fn entries(page_size: usize) -> [usize; LEN] {
         [
-            AT_PAGESZ,
-            page_size,
+            AT_PAGESZ, page_size,
             // No feature bits are advertised, so string/math routines take their baseline paths.
-            AT_HWCAP,
-            0,
-            AT_SECURE,
-            0,
-            AT_NULL,
-            0,
+            AT_HWCAP, 0, AT_SECURE, 0, AT_NULL, 0,
         ]
     }
 }

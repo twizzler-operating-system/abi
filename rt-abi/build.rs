@@ -4,6 +4,13 @@ fn main() {
     let headers = std::env::var("TWIZZLER_ABI_BUILTIN_HEADERS").ok();
     let sysroots = std::env::var("TWIZZLER_ABI_SYSROOTS").ok();
     let mut target = std::env::var("TARGET").unwrap();
+    let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("bindings.rs");
+
+    // Building for the host with no sysroot to point clang at: use the system headers, since
+    // io.h needs sys/select.h. xtask always sets one of the vars above, so a real target build
+    // never takes this path.
+    let host_build =
+        headers.is_none() && sysroots.is_none() && target == std::env::var("HOST").unwrap();
 
     let prefix = "../include/twizzler/rt";
 
@@ -22,15 +29,11 @@ fn main() {
     bg.arg("--distrust-clang-mangling");
     bg.arg("--with-derive-default");
     bg.arg(format!("{}/__all.h", prefix));
-    bg.arg("-o")
-        .arg(format!("src/bindings.rs"))
-        .arg("--")
-        .arg("-target")
-        .arg(&target);
+    bg.arg("-o").arg(&out).arg("--").arg("-target").arg(&target);
 
     if headers.is_some() {
         bg.arg("-nostdinc");
-    } else {
+    } else if !host_build {
         bg.arg("-nostdlibinc");
     }
 
