@@ -6,11 +6,14 @@ fn main() {
     let mut target = std::env::var("TARGET").unwrap();
     let out = std::path::Path::new(&std::env::var("OUT_DIR").unwrap()).join("bindings.rs");
 
-    // Building for the host with no sysroot to point clang at: use the system headers, since
-    // io.h needs sys/select.h. xtask always sets one of the vars above, so a real target build
-    // never takes this path.
-    let host_build =
-        headers.is_none() && sysroots.is_none() && target == std::env::var("HOST").unwrap();
+    // Building for the host: use the system headers, since io.h needs sys/select.h.
+    //
+    // This deliberately does not care whether TWIZZLER_ABI_SYSROOTS is set. It used to, and that
+    // made the host copy unbuildable under xtask, which always sets it: the sysroots tree only ever
+    // contains Twizzler targets, so the host build got `-nostdlibinc` plus an include path that
+    // does not exist and failed on `sys/select.h`. Nothing noticed because the host std is normally
+    // taken from stage0 and never rebuilt -- until you change libstd and it has to be.
+    let host_build = headers.is_none() && target == std::env::var("HOST").unwrap();
 
     let prefix = "../include/twizzler/rt";
 
@@ -41,7 +44,7 @@ fn main() {
         bg.arg("-I").arg(headers);
     }
 
-    if let Some(sysroots) = sysroots {
+    if let Some(sysroots) = sysroots.filter(|_| !host_build) {
         let sysheaders = format!("{}/{}/include", sysroots, target);
         bg.arg("-I").arg(sysheaders);
         if target.ends_with("-none") {

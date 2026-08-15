@@ -48,12 +48,32 @@ impl RawTwzError {
         Self(raw)
     }
 
+    /// Note this checks the whole word, not just the code: `GenericError::Other` also has code 0,
+    /// and must not read as success.
     pub fn is_success(&self) -> bool {
-        self.code() == bindings::SUCCESS
+        self.0 == bindings::SUCCESS as bindings::twz_error
     }
 
     pub fn raw(&self) -> bindings::twz_error {
         self.0
+    }
+
+    /// Pack into the 32 bits an OS error code carries, losslessly.
+    ///
+    /// A `twz_error` only ever populates a 16-bit code and a 16-bit category, so the whole error
+    /// fits. This is what lets a platform layer keep a Twizzler error in an allocation-free
+    /// representation -- libstd's `io::Error` boxes any payload it is handed, twice, but stores a
+    /// raw OS code inline.
+    pub fn as_os_code(&self) -> i32 {
+        let cat = (self.0 & bindings::ERROR_CATEGORY_MASK) >> bindings::ERROR_CATEGORY_SHIFT;
+        let code = (self.0 & bindings::ERROR_CODE_MASK) >> bindings::ERROR_CODE_SHIFT;
+        (((cat as u32) << 16) | (code as u32)) as i32
+    }
+
+    /// Inverse of [`Self::as_os_code`].
+    pub fn from_os_code(code: i32) -> Self {
+        let code = code as u32;
+        Self::from_parts((code >> 16) as u16, (code & 0xffff) as u16)
     }
 
     pub fn success() -> Self {
@@ -205,11 +225,15 @@ pub enum GenericError {
 impl GenericError {
     fn twz_error_from_code(code: u16) -> TwzError {
         match code {
+            bindings::OTHER_ERROR => TwzError::Generic(GenericError::Other),
             bindings::NOT_SUPPORTED => TwzError::Generic(GenericError::NotSupported),
             bindings::INTERNAL => TwzError::Generic(GenericError::Internal),
             bindings::WOULD_BLOCK => TwzError::Generic(GenericError::WouldBlock),
             bindings::TIMED_OUT => TwzError::Generic(GenericError::TimedOut),
+            bindings::ACCESS_DENIED => TwzError::Generic(GenericError::AccessDenied),
             bindings::NO_SUCH_OPERATION => TwzError::Generic(GenericError::NoSuchOperation),
+            bindings::INTERRUPTED => TwzError::Generic(GenericError::Interrupted),
+            bindings::IN_PROGRESS => TwzError::Generic(GenericError::InProgress),
             _ => TwzError::Uncategorized(code),
         }
     }
@@ -308,6 +332,11 @@ impl ResourceError {
             bindings::OUT_OF_RESOURCES => TwzError::Resource(ResourceError::OutOfResources),
             bindings::OUT_OF_NAMES => TwzError::Resource(ResourceError::OutOfNames),
             bindings::UNAVAILABLE => TwzError::Resource(ResourceError::Unavailable),
+            bindings::BUSY => TwzError::Resource(ResourceError::Busy),
+            bindings::NOT_CONNECTED => TwzError::Resource(ResourceError::NotConnected),
+            bindings::UNREACHABLE => TwzError::Resource(ResourceError::Unreachable),
+            bindings::REFUSED => TwzError::Resource(ResourceError::Refused),
+            bindings::NON_ATOMIC => TwzError::Resource(ResourceError::NonAtomic),
             _ => TwzError::Uncategorized(code),
         }
     }
@@ -411,6 +440,7 @@ impl IoError {
             bindings::DATA_LOSS => TwzError::Io(IoError::DataLoss),
             bindings::DEVICE_ERROR => TwzError::Io(IoError::DeviceError),
             bindings::SEEK_FAILED => TwzError::Io(IoError::SeekFailed),
+            bindings::RESET => TwzError::Io(IoError::Reset),
             _ => TwzError::Uncategorized(code),
         }
     }

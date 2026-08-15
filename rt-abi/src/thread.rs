@@ -68,10 +68,7 @@ pub fn twz_rt_futex_wait(
 
 /// Wake up up to max threads waiting on `word`. If max is None, wake up all threads.
 pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> Result<()> {
-    let max = match max {
-        Some(max) => max as i64,
-        None => crate::bindings::FUTEX_WAKE_ALL,
-    };
+    let max = raw_max(max);
     unsafe {
         match nk!(crate::bindings::twz_rt_futex_wake(
             word.as_ptr().cast(),
@@ -80,6 +77,33 @@ pub fn twz_rt_futex_wake(word: &AtomicFutexWord, max: Option<usize>) -> Result<(
             0 => Ok(()),
             e => Err(RawTwzError::new(e).error()),
         }
+    }
+}
+
+/// As [twz_rt_futex_wake], but reports how many threads were actually woken.
+///
+/// Callers read zero as "nobody was waiting". libstd's `RwLock` needs that answer: without it, a
+/// write-unlock cannot tell whether it notified a writer and wakes every waiting reader as well.
+pub fn twz_rt_futex_wake_count(word: &AtomicFutexWord, max: Option<usize>) -> Result<usize> {
+    let max = raw_max(max);
+    unsafe {
+        let res = nk!(crate::bindings::twz_rt_futex_wake_count(
+            word.as_ptr().cast(),
+            max
+        ));
+        let raw = RawTwzError::new(res.err);
+        if raw.is_success() {
+            Ok(res.val as usize)
+        } else {
+            Err(raw.error())
+        }
+    }
+}
+
+fn raw_max(max: Option<usize>) -> i64 {
+    match max {
+        Some(max) => max as i64,
+        None => crate::bindings::FUTEX_WAKE_ALL,
     }
 }
 
@@ -94,6 +118,34 @@ pub fn twz_rt_yield() {
 pub fn twz_rt_sleep(dur: Duration) {
     unsafe {
         nk!(crate::bindings::twz_rt_sleep(dur.into()));
+    }
+}
+
+/// Atomic form of the interrupt-generation word.
+pub type AtomicInterruptGen = core::sync::atomic::AtomicU64;
+
+/// Get the calling thread's interrupt-generation word.
+///
+/// Blocking operations sample [twz_rt_interrupt_gen] on entry and report
+/// [crate::error::GenericError::Interrupted] once it moves. The raw pointer is exposed because the
+/// word doubles as a thread-sync sleep operand, which closes the window between that check and the
+/// sleep itself. It is valid only on the calling thread.
+pub fn twz_rt_interrupt_word() -> *const AtomicInterruptGen {
+    unsafe { nk!(crate::bindings::twz_rt_interrupt_word()).cast() }
+}
+
+/// Read the calling thread's interrupt generation.
+pub fn twz_rt_interrupt_gen() -> u64 {
+    unsafe { &*twz_rt_interrupt_word() }.load(core::sync::atomic::Ordering::Acquire)
+}
+
+/// Record that a signal handler which should interrupt blocking operations has run on this thread.
+///
+/// Called by libc when it dispatches a caught handler with `SA_RESTART` clear. Nothing else should
+/// call it: an ignored signal, or one whose handler restarts, must leave blocking calls alone.
+pub fn twz_rt_interrupt_bump() {
+    unsafe {
+        nk!(crate::bindings::twz_rt_interrupt_bump());
     }
 }
 
