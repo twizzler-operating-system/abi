@@ -615,6 +615,8 @@ impl MetaExt {
 
 pub const MEXT_EMPTY: MetaExtTag = MetaExtTag(0);
 pub const MEXT_SIZED: MetaExtTag = MetaExtTag(1);
+/// Modification time in seconds, for objects backed by an external store that records one.
+pub const MEXT_MTIME: MetaExtTag = MetaExtTag(2);
 
 /// The maximum size of an object, including null page and meta page(s).
 pub const MAX_SIZE: usize = 1024 * 1024 * 1024;

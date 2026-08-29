@@ -173,3 +173,17 @@ pub fn twz_rt_join_thread(id: ThreadId, timeout: Option<Duration>) -> Result<()>
         RawTwzError::new(nk!(crate::bindings::twz_rt_join_thread(id, timeout.into()))).result()
     }
 }
+
+/// Information the runtime keeps about a live thread.
+pub type ThreadInfo = crate::bindings::thread_info;
+
+/// Thread id meaning "the calling thread".
+pub const THREAD_ID_SELF: ThreadId = crate::bindings::TWZ_RT_THREAD_ID_SELF;
+
+/// Look up the runtime's record for a thread.
+///
+/// `tcb` is that thread's TCB pointer, which is what mlibc uses as its `pthread_t`. An id naming
+/// no live thread yields a zeroed record with a null `tcb` rather than an error.
+pub fn twz_rt_get_thread_info(id: ThreadId) -> ThreadInfo {
+    unsafe { nk!(crate::bindings::twz_rt_get_thread_info(id)) }
+}
