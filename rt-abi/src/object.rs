@@ -13,7 +13,7 @@ use bitflags::bitflags;
 use crate::{
     bindings::{
         object_cmd, object_create, object_tie, sync_info, twz_rt_object_cmd, LEN_MUL,
-        OBJECT_CMD_DELETE, OBJECT_CMD_SYNC, OBJECT_CMD_UPDATE,
+        OBJECT_CMD_DELETE, OBJECT_CMD_PRELOAD, OBJECT_CMD_SYNC, OBJECT_CMD_UPDATE,
     },
     error::{RawTwzError, ResourceError, TwzError},
     nk, Result,
@@ -151,6 +151,7 @@ pub enum ObjectCmd {
     Delete = OBJECT_CMD_DELETE,
     Sync = OBJECT_CMD_SYNC,
     Update = OBJECT_CMD_UPDATE,
+    Preload = OBJECT_CMD_PRELOAD,
 }
 
 impl TryFrom<object_cmd> for ObjectCmd {
@@ -161,6 +162,7 @@ impl TryFrom<object_cmd> for ObjectCmd {
             OBJECT_CMD_DELETE => Ok(ObjectCmd::Delete),
             OBJECT_CMD_SYNC => Ok(ObjectCmd::Sync),
             OBJECT_CMD_UPDATE => Ok(ObjectCmd::Update),
+            OBJECT_CMD_PRELOAD => Ok(ObjectCmd::Preload),
             _ => Err(TwzError::INVALID_ARGUMENT),
         }
     }
@@ -211,20 +213,25 @@ impl ObjectHandle {
 
     pub unsafe fn set_meta_ext(&self, ext: MetaExt) -> Result<()> {
         let meta_exts = self.meta_exts();
+        let new = ext.value.load(Ordering::SeqCst);
         for me in meta_exts {
             if me.tag == ext.tag {
-                me.value
-                    .store(ext.value.load(Ordering::SeqCst), Ordering::SeqCst);
+                // Only when it actually changes. A store of an identical value still dirties the
+                // metadata page, and that page costs a whole extra pager request per object sync:
+                // it lives at the far end of the object, so it never coalesces with the data runs
+                // and always ends up the last -- hence fenced -- single-page evict. `MEXT_MTIME`
+                // has one-second granularity, so a burst of writes inside one second would
+                // otherwise re-dirty it on every call for a value that never moved.
+                if me.value.load(Ordering::SeqCst) != new {
+                    me.value.store(new, Ordering::SeqCst);
+                }
                 return Ok(());
             }
         }
         let meta_exts = self.all_meta_exts();
         for (idx, me) in meta_exts.iter().enumerate() {
             if me.tag == MEXT_EMPTY {
-                if me
-                    .value
-                    .swap(ext.value.load(Ordering::Relaxed), Ordering::SeqCst)
-                    == 0
+                if me.value.swap(new, Ordering::SeqCst) == 0
                 {
                     let ptr = addr_of!(me.tag) as *mut MetaExtTag;
                     ptr.write(ext.tag);
@@ -617,6 +624,10 @@ pub const MEXT_EMPTY: MetaExtTag = MetaExtTag(0);
 pub const MEXT_SIZED: MetaExtTag = MetaExtTag(1);
 /// Modification time in seconds, for objects backed by an external store that records one.
 pub const MEXT_MTIME: MetaExtTag = MetaExtTag(2);
+/// Hard link count, for objects backed by an external store that records one. Absent means one
+/// name, which is also what a value of 1 means -- `find_meta_ext` reads a zero value as an absent
+/// slot, so the two are indistinguishable and mean the same thing here.
+pub const MEXT_NLINK: MetaExtTag = MetaExtTag(3);
 
 /// The maximum size of an object, including null page and meta page(s).
 pub const MAX_SIZE: usize = 1024 * 1024 * 1024;
