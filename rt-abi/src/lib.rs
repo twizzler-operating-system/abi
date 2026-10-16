@@ -36,7 +36,9 @@ pub mod time;
     non_upper_case_globals,
     improper_ctypes
 )]
-pub mod bindings;
+pub mod bindings {
+    include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
+}
 
 pub mod error;
 

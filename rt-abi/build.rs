@@ -17,13 +17,15 @@ fn main() {
     if let Some(val) = std::env::var("TWIZZLER_ABI_LLVM_CONFIG").ok() {
         bg.env("LLVM_CONFIG_PATH", val);
     }
+    let out_dir = std::env::var("OUT_DIR").unwrap();
+
     bg.arg("--override-abi").arg(".*=C-unwind");
     bg.arg("--use-core");
     bg.arg("--distrust-clang-mangling");
     bg.arg("--with-derive-default");
     bg.arg(format!("{}/__all.h", prefix));
     bg.arg("-o")
-        .arg(format!("src/bindings.rs"))
+        .arg(format!("{}/bindings.rs", out_dir))
         .arg("--")
         .arg("-target")
         .arg(&target);
@@ -53,4 +55,7 @@ fn main() {
         panic!("failed to generate bindings");
     }
     println!("cargo::rerun-if-changed=../include");
+    println!("cargo::rerun-if-env-changed=TWIZZLER_ABI_BUILTIN_HEADERS");
+    println!("cargo::rerun-if-env-changed=TWIZZLER_ABI_SYSROOTS");
+    println!("cargo::rerun-if-env-changed=TWIZZLER_ABI_LLVM_CONFIG");
 }
