@@ -498,6 +498,7 @@ pub enum SecurityError {
     SignatureMismatch = bindings::SIGNATURE_MISMATCH,
     GateDenied = bindings::GATE_DENIED,
     InvalidGate = bindings::INVALID_GATE,
+    MaxNestExceeded = bindings::MAX_NEST_EXCEEDED,
 }
 
 impl SecurityError {
@@ -508,6 +509,7 @@ impl SecurityError {
             bindings::INVALID_GATE => TwzError::Security(SecurityError::InvalidGate),
             bindings::GATE_DENIED => TwzError::Security(SecurityError::GateDenied),
             bindings::SIGNATURE_MISMATCH => TwzError::Security(SecurityError::SignatureMismatch),
+            bindings::MAX_NEST_EXCEEDED => TwzError::Security(SecurityError::MaxNestExceeded),
             _ => TwzError::Uncategorized(code),
         }
     }
@@ -525,6 +527,7 @@ impl Display for SecurityError {
             SecurityError::SignatureMismatch => write!(f, "signature mismatch"),
             SecurityError::GateDenied => write!(f, "gate denied"),
             SecurityError::InvalidGate => write!(f, "invalid gate"),
+            SecurityError::MaxNestExceeded => write!(f, "maximum delegation nesting exceeded"),
         }
     }
 }

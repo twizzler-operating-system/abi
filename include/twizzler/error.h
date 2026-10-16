@@ -77,6 +77,7 @@ const twz_error_code INVALID_SCHEME = 2;
 const twz_error_code SIGNATURE_MISMATCH = 3;
 const twz_error_code GATE_DENIED = 4;
 const twz_error_code INVALID_GATE = 5;
+const twz_error_code MAX_NEST_EXCEEDED = 6;
 
 // Kinds
 const twz_error_category UNCATEGORIZED_ERROR = 0;
